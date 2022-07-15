@@ -1,6 +1,6 @@
 # Codingame - The Art of Code
 
-A multiplayer game for [CodinGame](www.codingame.com). A bit like the boardgame Risk but without dice, so the battles don't include a random factor.
+A multiplayer game for [CodinGame](https://www.codingame.com). A bit like the boardgame Risk but without dice, so the battles don't include a random factor.
 
 ## Rules
 
@@ -37,5 +37,3 @@ Game classes:
   - MapGenerator: generates a map graph
 - package: game.view
   - View: draws the map and other stuff onto the screen
-
-
