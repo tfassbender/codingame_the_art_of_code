@@ -8,7 +8,7 @@ TODO add rules
 
 ## Tasks
 
-- [:hammer: Tobias - master] Create the basic class structure
+- [:heavy_check_mark: Tobias - master] Create the basic class structure
 - Create a hard-coded map (for testing)
 - Let the referee send the current game state to the players
 - Let the referee parse the players moves to Actions (that can be executed)
@@ -32,6 +32,7 @@ Game classes:
   - Region: a group of fields, that define a region (for more units)
   - Map: the map of the game, that includes the fields
   - Movement: the movement of troops, that can be executed on a map
+  - Owner: the owner of a field
 - package: game.build
   - Random: provides random functions and the used seed
   - MapGenerator: generates a map graph
