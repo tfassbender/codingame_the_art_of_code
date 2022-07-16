@@ -33,11 +33,15 @@ public class Player extends AbstractMultiplayerPlayer {
 		
 		if (parts.length < 1) {
 			throw new InvalidAction("No action is given");
-		} else if (parts.length < 2) {
-			throw new InvalidAction("Missing field id");
-		}
+		} 
 		
 		String type = parts[0];
+		
+		if (Action.Type.RANDOM.toString().equals(type)) {
+			return new Action(Action.Type.RANDOM);
+		} else if (parts.length < 2) {
+			throw new InvalidAction("Missing field id in output: "+output);
+		}
 		
 		if (Action.Type.CHOOSE_STARTING_POSITION.toString().equals(type)) {
 			action = new Action(Action.Type.CHOOSE_STARTING_POSITION, Integer.parseInt(parts[1]));
