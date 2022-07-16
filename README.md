@@ -10,7 +10,7 @@ TODO add rules
 
 - [:heavy_check_mark: Tobias - master] Create the basic class structure
 - [:hammer_and_wrench: Dominik - master] Create a hard-coded map (for testing)
-- Let the referee send the current game state to the players
+- [:hammer_and_wrench: Tobias - referee_send_move] Let the referee send the current game state to the players
 - Let the referee parse the players moves to Actions (that can be executed)
 - Execute moves (in the map class)
 - Implement a simple view (for testing)
