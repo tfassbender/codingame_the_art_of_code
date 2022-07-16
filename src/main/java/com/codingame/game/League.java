@@ -1,7 +1,5 @@
 package com.codingame.game;
 
-import com.codingame.gameengine.core.MultiplayerGameManager;
-
 public enum League {
 	
 	LEAGUE_1(1), //
@@ -21,10 +19,6 @@ public enum League {
 			}
 		}
 		throw new IllegalStateException("Unknown league level: " + level);
-	}
-	
-	public static League getLeague(MultiplayerGameManager<Player> gameManager) {
-		return getByLevel(gameManager.getLeagueLevel());
 	}
 	
 	public int getLevel() {
