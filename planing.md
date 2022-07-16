@@ -23,6 +23,7 @@ Das Spiel soll ähnlich wie Rsiko funktionieren:
       > 2) Wir runden immer ab auf dem Schlachtfeld, sammeln die Stellen nach dem Komma (zwei halbe Einheiten sind eine ganze) und ziehen das beim nächsten Einheiteverteilen von den verfügbaren Einheiten ab.
       > 3) Wie regel zwei, aber mit aufrunden und truppen bonus statt abzug
       > 4) Es gab ein Codingame spiel was diese Abwägung alterniert (einen Zug ja und einen Zug nein), aber das finde ich nicht so elegant
+    - Wir haben uns für c) entschieden.
   - Wenn nach einem Angriff keine Verteidiger mehr übrig sind und mindestens ein Angreifer übrig ist, rücken die Angreifer auf das angegriffene Feld vor
   - Falls nach dem Angriff noch Verteidiger oder keine Angreifer mehr übrig sind, bleibt die Kontrolle über die Felder bestehen
     ? Kann man mit nur einer Einheit angreifen und kann man ein land ohne Einheiten zurücklassen?
@@ -91,7 +92,7 @@ Die Karte für das Spiel soll zufällig generiert werden
 ### Startgebiete
 
 ? Wie viele Startgebiete soll ein Spieler bekommen? (ich würde sagen mehrere, damit man etwas schneller startet (wegen der begrenzten Rundenzahl); vielleicht abhängig von der Größe der Karte?)
-  > Ich würde auch sagen mehrere und abhängig von der Karten größe. Mit den Zahlen muss man mal ein wenig testen. Ich dachte auch an sowas wie % von Karte (+- x*random), aber wahrscheinlich ist das ohne Random Sauberer und weniger Komplex.
+  > Ich würde auch sagen mehrere und abhängig von der Karten größe. Mit den Zahlen muss man mal ein wenig testen. Ich dachte auch an sowas wie % von Karte (+- x*random), aber wahrscheinlich ist das ohne Random Sauberer und weniger Komplex. Tendenz ist 3-5 Startfelder.
 ? Werden die Startgebiete zugewiesen, oder kann man die selbst wählen?
   > Ich bin für selbstwählen, dass macht es so viel cooler.
   - Selbst wählen würde zusätzliche Komplexität in das Spiel bringen und eine Dritte Phase einführen (die nur einmal gemacht wird)
@@ -113,7 +114,7 @@ Die Karte für das Spiel soll zufällig generiert werden
       > Es gäbe noch eine weitere möglichkeit wie bei dem Spiel 4 Gewinnt auf Codingame: Nacheinander ziehen, aber Spieler zwei darf einmal die Auswahl vom gegner stehlen. Das macht aber nur Sinn, falls Spieler 2 nicht im Vorteil ist (Asymmetrische Map).
         > Ich glaube die Symetrische Map aufzugeben macht wenig sinn. Sonst ist das Spiel zu zufällig und könnte durch eine gute Startposition entschieden werden (wie bei Risiko: Wenn du in den ersten paar Runden Australien eroberst, hast du schon so gut wie gewonnen)
       > Letzte und vielleicht sogar meine lieblingsidee: es gibt eine hälfte wo die Wahl von Spieler 1 bevorzugt wird und eine von Spieler 2. Wenn ein Spieler übergangen wird, hängt der halt länger in der Auswahlphase und du siehst über die Inputs, wie viele du noch Platzieren musst und wie viele der Gegner noch machen muss. Willst du später lieber platzieren, das bevorzugst du die wahl in der "gegnerischen" hälfte und ansonsten eher in deiner eigenen.
-        > Die Idee ist ziemlich cool. Mir macht nur sorgen, dass man damit die Startphase zu lang ziehen könnte (wegen der 200 Züge Begrenzung). Und das ist recht kompliziert, daher sollten wir das vielleicht erst in der zweiten oder dritten Liga einführen.
+        > Die Idee ist ziemlich cool. Mir macht nur sorgen, dass man damit die Startphase zu lang ziehen könnte (wegen der 200 Züge Begrenzung). Und das ist recht kompliziert, daher sollten wir das vielleicht erst in der zweiten oder dritten Liga einführen. Wir implementieren die mit dem übergehen, aber in den ersten Ligen wird das nicht genutzt. Stattdessen kann dann erstmal nur jeder in seiner hälfe auswählen.
   ? Falls man Startgebiete wählen kann: Soll man auch auswählen können wie viele Einheiten in ein Startgebiet gestellt werden?
     > Ne lieber die erste Phase simpel halten und womöglich in dem ersten Zug dann bonustruppen geben (+10 so als Beispiel) oder macht es das zu schwierig auf den Gegner zu reagieren?
       > Das mit den Bonustruppen finde ich gut. Wenn es schwierig ist auf den Gegner zu reagieren finde ich das eigentlich auch ganz gut :D
@@ -164,7 +165,7 @@ Die Bewegungen der Einheiten kann man darstellen indem man die Zahl (oder einen 
 
 ? Was ist mit Spezialzügen? Brauchen wir sowas? Falls ja, welche?
 > Ich glaube wir haben schon genug Regeln, sodass wir nicht unbedingt noch Spezialzüge bräuchten. Aber wenn wir eine coole Idee dafür haben können wir die vielleicht noch einbauen.
-> Wir sollten aber darauf achten, nicht zu viele Regeln einzubauen. Sonst muss man zu viel an der KI anpassen um das zu Spielen. Das war auch einer meiner Hauptkritikpunkte bei "Green Circle".
+> Wir sollten aber darauf achten, nicht zu viele Regeln einzubauen. Sonst muss man zu viel an der KI anpassen um das zu Spielen. Das war auch einer meiner Hauptkritikpunkte bei "Green Circle". Genau, erstmal keine Sonderzüge, das Spiel hat so schon genug.
 
 
 
