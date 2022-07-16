@@ -2,7 +2,7 @@ package com.codingame.game;
 
 import java.util.List;
 
-import com.codingame.game.build.MapGenerator;
+import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
@@ -39,7 +39,7 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50); // TODO are 50ms enough?
 		
-		map = new MapGenerator().createDummyMap();
+		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		startingFieldChoice = new StartingFieldChoice(map.fields.size());
 		
