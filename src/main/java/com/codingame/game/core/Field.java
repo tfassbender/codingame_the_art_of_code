@@ -13,6 +13,15 @@ public class Field {
 		this.id = id;
 	}
 	
+	public static Field createNeutralCamp(int id, int troops) {
+		Field field = new Field(id);
+		
+		field.setOwner(Owner.NEUTRAL);
+		field.setTroops(troops);
+		
+		return field;
+	}
+	
 	public int getTroops() {
 		return troops;
 	}

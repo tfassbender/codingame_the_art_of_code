@@ -11,8 +11,10 @@ public class Map {
 	
 	public final Set<Field> fields;
 	public final Set<Pair<Field, Field>> connections;
+	public final Set<Region> regions;
 	
-	public Map(Set<Field> fields, Set<Pair<Field, Field>> connections) {
+	public Map(Set<Region> regions, Set<Field> fields, Set<Pair<Field, Field>> connections) {
+		this.regions = regions;
 		this.fields = fields;
 		this.connections = connections;
 	}
