@@ -11,7 +11,7 @@ TODO add rules
 - [:heavy_check_mark: Tobias - master] Create the basic class structure
 - [:heavy_check_mark: Dominik - master] Create a hard-coded map (for testing)
 - [:heavy_check_mark: Tobias - referee_send_move, master] Let the referee send the current game state to the players
-- [:heavy_check_mark: Dominik - referee_parse_move] Let the referee parse the players moves to Actions (that can be executed)
+- [:heavy_check_mark: Dominik - referee_parse_move, master] Let the referee parse the players moves to Actions (that can be executed)
 - Execute moves (in the map class)
   - Choose starting field
   - Deploy troop / Move troop
