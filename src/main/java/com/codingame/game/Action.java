@@ -1,5 +1,7 @@
 package com.codingame.game;
 
+import com.codingame.game.core.Movement;
+
 /**
  * An action that was parsed from the player's output.
  */
@@ -10,7 +12,17 @@ public class Action {
 	public static enum Type {
 		CHOOSE_STARTING_POSITION, //
 		DEPLOY_TROOPS, //
-		MOVEMENT, //
+		MOVEMENT; //
+		
+		public String toString() {
+			switch(this) {
+			case CHOOSE_STARTING_POSITION: return "PICK";
+			case DEPLOY_TROOPS: return "DEPLOY";
+			case MOVEMENT: return "MOVE";
+			default:
+				throw new IllegalStateException("Unknown action type");
+			}
+		}
 	}
 	
 	private Type type;
@@ -47,5 +59,15 @@ public class Action {
 	
 	public int getNumTroops() {
 		return numTroops;
+	}
+	
+	public String toString() {
+		switch(type) {
+		case CHOOSE_STARTING_POSITION: return String.format("%s %d", type, targetId);
+		case DEPLOY_TROOPS: return String.format("%s %d %d", type, targetId, numTroops);
+		case MOVEMENT: return String.format("%s %d %d %d", type, targetId, sourceId, numTroops);
+		default:
+			throw new IllegalStateException("Invalid action state");
+		}
 	}
 }

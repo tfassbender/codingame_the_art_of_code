@@ -92,11 +92,20 @@ public class Referee extends AbstractReferee {
 		
 		for (Player player : gameManager.getActivePlayers()) {
 			try {
-				List<String> outputs = player.getOutputs();
+				List<Action> actions = player.getMoves();
 				// Check validity of the player output and compute the new game state
 			}
 			catch (TimeoutException e) {
 				player.deactivate(String.format("$%d timeout!", player.getIndex()));
+			} catch (NumberFormatException e) {
+				player.deactivate("Wrong output!");
+				player.setScore(-1);
+				endGame();
+			} catch (InvalidAction e) {
+				String deactivateMessage = e.getMessage();
+				player.deactivate(deactivateMessage);
+				player.setScore(-1);
+				endGame();
 			}
 		}
 	}
@@ -135,5 +144,11 @@ public class Referee extends AbstractReferee {
 			
 			player.sendInputLine(field.id + " " + field.getTroops() + " " + owner);
 		}
+	}
+	
+	private void endGame() {
+		// TODO insert end game winner checks here
+		
+		gameManager.endGame();
 	}
 }
