@@ -95,8 +95,12 @@ public class Referee extends AbstractReferee {
 		player1.execute();
 		player2.execute();
 		
-		getActions(player1, Owner.PLAYER_1);
-		getActions(player2, Owner.PLAYER_2);
+		List<Action> actions1 = getActions(player1, Owner.PLAYER_1);
+		List<Action> actions2 = getActions(player2, Owner.PLAYER_2);
+		
+		if (actions1 != null && actions2 != null) {
+			executeActions(actions1, actions2);
+		}
 	}
 	
 	/**
@@ -140,10 +144,11 @@ public class Referee extends AbstractReferee {
 		}
 	}
 	
-	private void getActions(Player player, Owner owner) {
+	private List<Action> getActions(Player player, Owner owner) {
 		try {
 			List<Action> actions = player.getMoves();
 			validateActions(actions, owner);
+			return actions;
 		}
 		catch (TimeoutException e) {
 			player.deactivate(String.format("$%d timeout!", player.getIndex()));
@@ -159,6 +164,8 @@ public class Referee extends AbstractReferee {
 			player.setScore(-1);
 			endGame();
 		}
+		
+		return null;
 	}
 	
 	protected void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
@@ -297,6 +304,10 @@ public class Referee extends AbstractReferee {
 			default:
 				throw new IllegalStateException("Unknown turn type: " + turnType);
 		}
+		
+		if (actions.stream().anyMatch(action -> action.getType() == Type.WAIT) && actions.size() > 1) {
+			throw new InvalidActionException(Type.WAIT + " commands cannot be mixed with other commands.");
+		}
 	}
 	
 	private InvalidActionException createInvalidActionTypeException(Action.Type actionType, TurnType expectedTurn) {
@@ -307,5 +318,9 @@ public class Referee extends AbstractReferee {
 		// TODO insert end game winner checks here
 		
 		gameManager.endGame();
+	}
+	
+	private void executeActions(List<Action> actions1, List<Action> actions2) {
+		//TODO
 	}
 }

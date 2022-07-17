@@ -155,7 +155,6 @@ public class RefereeTest {
 			setFieldProperties(1, Owner.PLAYER_1, 2);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), //
-					new Action(Type.WAIT), // WAIT actions can be used (have no effect)
 					new Action(Type.DEPLOY, 1, 1), //
 					new Action(Type.DEPLOY, 0, 1)); // deploying to the same field twice is OK
 			referee.validateActions(actions, Owner.PLAYER_1);
@@ -233,13 +232,12 @@ public class RefereeTest {
 		}
 		
 		@Test
-		public void test_move_troops__move_and_wait__valid() throws Exception {
+		public void test_move_troops__move__valid() throws Exception {
 			setTurnType(TurnType.MOVE_TROOPS);
 			setFieldProperties(0, Owner.PLAYER_1, 1);
 			setFieldProperties(1, Owner.PLAYER_1, 2);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 0, 1, 1), // movements between owned fields is allowed
-					new Action(Type.WAIT), // WAIT actions can be used (have no effect)
 					new Action(Type.MOVE, 1, 3, 1), // moves to a not owned field are allowed
 					new Action(Type.MOVE, 1, 4, 1)); // two moves from the same starting field (to different target fields) are allowed
 			referee.validateActions(actions, Owner.PLAYER_1);
@@ -376,6 +374,41 @@ public class RefereeTest {
 			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE a total number of 3 (or more) troops from field 1. " + //
 					"The field only contains 2 troops."));
+		}
+		
+		@Test
+		public void test_wait__cannot_be_mixed_with_other_actions__deploy_turn() throws Exception {
+			setTurnType(TurnType.DEPLOY_TROOPS);
+			map.deployableTroops = 2;
+			setFieldProperties(0, Owner.PLAYER_1, 1);
+			
+			List<Action> actions1 = Arrays.asList(new Action(Type.WAIT));
+			List<Action> actions2 = Arrays.asList(new Action(Type.WAIT), new Action(Type.WAIT)); // multiple wait commands are not allowed
+			List<Action> actions3 = Arrays.asList(new Action(Type.WAIT), new Action(Type.DEPLOY, 0, 1));
+			
+			referee.validateActions(actions1, Owner.PLAYER_1); // valid -> expect no exception
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			
+			assertTrue(invalidAction2.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
+			assertTrue(invalidAction3.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
+		}
+		
+		@Test
+		public void test_wait__cannot_be_mixed_with_other_actions__move_turn() throws Exception {
+			setTurnType(TurnType.MOVE_TROOPS);
+			setFieldProperties(0, Owner.PLAYER_1, 1);
+			
+			List<Action> actions1 = Arrays.asList(new Action(Type.WAIT));
+			List<Action> actions2 = Arrays.asList(new Action(Type.WAIT), new Action(Type.WAIT)); // multiple wait commands are not allowed
+			List<Action> actions3 = Arrays.asList(new Action(Type.WAIT), new Action(Type.MOVE, 0, 1, 1));
+			
+			referee.validateActions(actions1, Owner.PLAYER_1); // valid -> expect no exception
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			
+			assertTrue(invalidAction2.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
+			assertTrue(invalidAction3.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
 		}
 		
 		private void setTurnType(TurnType type) throws NoSuchFieldException, IllegalAccessException {
