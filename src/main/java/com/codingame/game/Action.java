@@ -1,5 +1,7 @@
 package com.codingame.game;
 
+import com.codingame.game.core.Owner;
+
 /**
  * An action that was parsed from the player's output.
  */
@@ -25,6 +27,8 @@ public class Action {
 	private int targetId; // the id of the target field (used in all move types)
 	private int sourceId; // the id of the source field (only for MOVEMENT)
 	private int numTroops; // the number of troops that are deployed / moved (must be greater than 0)
+	
+	private Owner owner;
 	
 	public Action(Type type) {
 		this(type, NO_SELECTION, NO_SELECTION, 0);
@@ -59,6 +63,15 @@ public class Action {
 	
 	public int getNumTroops() {
 		return numTroops;
+	}
+	
+	public Owner getOwner() {
+		return owner;
+	}
+	
+	public Action setOwner(Owner owner) {
+		this.owner = owner;
+		return this;
 	}
 	
 	@Override

@@ -98,6 +98,10 @@ public class Referee extends AbstractReferee {
 		List<Action> actions1 = getActions(player1, Owner.PLAYER_1);
 		List<Action> actions2 = getActions(player2, Owner.PLAYER_2);
 		
+		// add the owner of the action to the action object
+		actions1.forEach(action -> action.setOwner(Owner.PLAYER_1));
+		actions2.forEach(action -> action.setOwner(Owner.PLAYER_2));
+		
 		if (actions1 != null && actions2 != null) {
 			executeActions(actions1, actions2);
 		}
@@ -320,7 +324,20 @@ public class Referee extends AbstractReferee {
 		gameManager.endGame();
 	}
 	
-	private void executeActions(List<Action> actions1, List<Action> actions2) {
-		//TODO
+	protected void executeActions(List<Action> actions1, List<Action> actions2) {
+		int minMoves = Math.min(actions1.size(), actions2.size());
+		
+		// every two moves of the players are executed simultaneously (in the order of the list) 
+		for (int i = 0; i < minMoves; i++) {
+			map.executeSimultaneously(actions1.get(i), actions2.get(i));
+		}
+		
+		// if one player has committed more moves than the other, there is no need for a simultaneous execution
+		for (int i = minMoves; i < actions1.size(); i++) {
+			map.executeIndependent(actions1.get(i));
+		}
+		for (int i = minMoves; i < actions2.size(); i++) {
+			map.executeIndependent(actions2.get(i));
+		}
 	}
 }
