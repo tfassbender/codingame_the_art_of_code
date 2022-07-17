@@ -43,25 +43,25 @@ public class RefereeTest {
 	public class ActionValidationTests {
 		
 		@Test
-		public void test_pick_starting_fields__valid() throws Exception {
+		public void test_pick_starting_fields__valid() throws Throwable {
 			setTurnType(TurnType.CHOOSE_STARTING_FIELDS);
 			mockStartingFieldChoice();
 			setLeague(League.LEAGUE_3);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.PICK, 1), new Action(Type.PICK, 2));
-			referee.validateActions(actions, Owner.PLAYER_1);
+			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exceptions are thrown
 		}
 		
 		@Test
-		public void test_pick_starting_fields__random() throws Exception {
+		public void test_pick_starting_fields__random() throws Throwable {
 			setTurnType(TurnType.CHOOSE_STARTING_FIELDS);
 			mockStartingFieldChoice();
 			setLeague(League.LEAGUE_1);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.RANDOM));
-			referee.validateActions(actions, Owner.PLAYER_1);
+			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exceptions are thrown
 		}
@@ -76,9 +76,9 @@ public class RefereeTest {
 			List<Action> actions2 = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.MOVE, 0, 1, 1));
 			List<Action> actions3 = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.WAIT));
 			
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions1, Owner.PLAYER_1));
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
-			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> validateActions(actions3, Owner.PLAYER_1));
 			
 			assertTrue(invalidAction1.getMessage().contains("The action " + Type.DEPLOY + " cannot be used in this turn"));
 			assertTrue(invalidAction2.getMessage().contains("The action " + Type.MOVE + " cannot be used in this turn"));
@@ -92,7 +92,7 @@ public class RefereeTest {
 			setLeague(League.LEAGUE_1);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0));
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction1.getMessage().contains("The command PICK is not enabled in this league."));
 		}
 		
@@ -104,7 +104,7 @@ public class RefereeTest {
 			setFieldProperties(0, Owner.PLAYER_1, 0);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0));
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction1.getMessage().contains("The field with the id 0 was already picked."));
 		}
 		
@@ -115,7 +115,7 @@ public class RefereeTest {
 			setLeague(League.LEAGUE_3);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.PICK, 42));
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction1.getMessage().contains("A field with the id 42 does not exist."));
 		}
 		
@@ -128,10 +128,10 @@ public class RefereeTest {
 			List<Action> actions1 = Arrays.asList(new Action(Type.PICK, 0));
 			List<Action> actions2 = Arrays.asList(new Action(Type.PICK, 1), new Action(Type.PICK, 2), new Action(Type.PICK, 3), new Action(Type.PICK, 4));
 			
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions1, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
 			assertTrue(invalidAction1.getMessage().contains("Not enough fields were picked. You need to pick 3 fields but you picked only 1."));
 			
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
 			assertTrue(invalidAction2.getMessage().contains("To many fields were picked. You need to pick 3 fields but you picked 4."));
 		}
 		
@@ -143,12 +143,12 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.RANDOM));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("The actions PICK and RANDOM cannot be mixed."));
 		}
 		
 		@Test
-		public void test_deploy_troops__deploy_and_wait__valid() throws Exception {
+		public void test_deploy_troops__deploy_and_wait__valid() throws Throwable {
 			setTurnType(TurnType.DEPLOY_TROOPS);
 			map.deployableTroops = 3;
 			setFieldProperties(0, Owner.PLAYER_1, 1);
@@ -157,7 +157,7 @@ public class RefereeTest {
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), //
 					new Action(Type.DEPLOY, 1, 1), //
 					new Action(Type.DEPLOY, 0, 1)); // deploying to the same field twice is OK
-			referee.validateActions(actions, Owner.PLAYER_1);
+			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exception is thrown
 		}
@@ -172,9 +172,9 @@ public class RefereeTest {
 			List<Action> actions2 = Arrays.asList(new Action(Type.DEPLOY, 0, 2), new Action(Type.MOVE, 0, 1, 1));
 			List<Action> actions3 = Arrays.asList(new Action(Type.DEPLOY, 0, 2), new Action(Type.RANDOM, 0, 1, 1));
 			
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions1, Owner.PLAYER_1));
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
-			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> validateActions(actions3, Owner.PLAYER_1));
 			
 			assertTrue(invalidAction1.getMessage().contains("The action " + Type.PICK + " cannot be used in this turn"));
 			assertTrue(invalidAction2.getMessage().contains("The action " + Type.MOVE + " cannot be used in this turn"));
@@ -189,7 +189,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), new Action(Type.DEPLOY, 1, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot DEPLOY to field 1. You don't controll this field."));
 		}
 		
@@ -201,7 +201,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), new Action(Type.DEPLOY, 42, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("A field with the id 42 does not exist."));
 		}
 		
@@ -214,25 +214,25 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), new Action(Type.DEPLOY, 1, 3));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot DEPLOY 4 troops in total. You can only deploy 3 troops in this turn."));
 		}
 		
 		@Test
-		public void test_deploy_troops__deployed_less_troops_than_allowed__valid() throws Exception {
+		public void test_deploy_troops__deployed_less_troops_than_allowed__valid() throws Throwable {
 			setTurnType(TurnType.DEPLOY_TROOPS);
 			map.deployableTroops = 3;
 			setFieldProperties(0, Owner.PLAYER_1, 1);
 			setFieldProperties(1, Owner.PLAYER_1, 2);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), new Action(Type.DEPLOY, 1, 1));
-			referee.validateActions(actions, Owner.PLAYER_1);
+			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exception is thrown
 		}
 		
 		@Test
-		public void test_move_troops__move__valid() throws Exception {
+		public void test_move_troops__move__valid() throws Throwable {
 			setTurnType(TurnType.MOVE_TROOPS);
 			setFieldProperties(0, Owner.PLAYER_1, 1);
 			setFieldProperties(1, Owner.PLAYER_1, 2);
@@ -240,20 +240,20 @@ public class RefereeTest {
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 0, 1, 1), // movements between owned fields is allowed
 					new Action(Type.MOVE, 1, 3, 1), // moves to a not owned field are allowed
 					new Action(Type.MOVE, 1, 4, 1)); // two moves from the same starting field (to different target fields) are allowed
-			referee.validateActions(actions, Owner.PLAYER_1);
+			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exception is thrown
 		}
 		
 		@Test
-		public void test_move_troops__connections_are_bidirectional() throws Exception {
+		public void test_move_troops__connections_are_bidirectional() throws Throwable {
 			setTurnType(TurnType.MOVE_TROOPS);
 			setFieldProperties(0, Owner.PLAYER_1, 1);
 			setFieldProperties(1, Owner.PLAYER_1, 2);
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 0, 1, 1), //
 					new Action(Type.MOVE, 1, 0, 1));
-			referee.validateActions(actions, Owner.PLAYER_1);
+			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exception is thrown
 		}
@@ -267,9 +267,9 @@ public class RefereeTest {
 			List<Action> actions2 = Arrays.asList(new Action(Type.MOVE, 0, 1, 1), new Action(Type.DEPLOY, 0, 1));
 			List<Action> actions3 = Arrays.asList(new Action(Type.MOVE, 0, 1, 1), new Action(Type.RANDOM, 0, 1, 1));
 			
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions1, Owner.PLAYER_1));
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
-			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> validateActions(actions3, Owner.PLAYER_1));
 			
 			assertTrue(invalidAction1.getMessage().contains("The action " + Type.PICK + " cannot be used in this turn"));
 			assertTrue(invalidAction2.getMessage().contains("The action " + Type.DEPLOY + " cannot be used in this turn"));
@@ -284,7 +284,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 42, 1, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE from field 42. A field with the id 42 does not exist."));
 		}
 		
@@ -296,7 +296,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 0, 42, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE to field 42. A field with the id 42 does not exist."));
 		}
 		
@@ -308,7 +308,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 2, 1, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE from field 2. You don't controll this field."));
 		}
 		
@@ -320,7 +320,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 1, 1, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE from field 1 to field 1. A move must be to a different field."));
 		}
 		
@@ -332,7 +332,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 1, 10, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE from field 1 to field 10. The fields are not connected."));
 		}
 		
@@ -344,7 +344,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 1, 2, 1), new Action(Type.MOVE, 1, 2, 2));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE from field 1 to field 2 with multiple commands. " + //
 					"Only one move with the same source and target is allowed."));
 		}
@@ -357,7 +357,7 @@ public class RefereeTest {
 			
 			List<Action> actions = Arrays.asList(new Action(Type.MOVE, 1, 2, 0));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot execute a MOVE command with no troops. You must move at least 1 troop."));
 		}
 		
@@ -371,13 +371,13 @@ public class RefereeTest {
 					new Action(Type.MOVE, 1, 2, 2), // number of troops is summed
 					new Action(Type.MOVE, 1, 2, 1));
 			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions, Owner.PLAYER_1));
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE a total number of 3 (or more) troops from field 1. " + //
 					"The field only contains 2 troops."));
 		}
 		
 		@Test
-		public void test_wait__cannot_be_mixed_with_other_actions__deploy_turn() throws Exception {
+		public void test_wait__cannot_be_mixed_with_other_actions__deploy_turn() throws Throwable {
 			setTurnType(TurnType.DEPLOY_TROOPS);
 			map.deployableTroops = 2;
 			setFieldProperties(0, Owner.PLAYER_1, 1);
@@ -386,16 +386,16 @@ public class RefereeTest {
 			List<Action> actions2 = Arrays.asList(new Action(Type.WAIT), new Action(Type.WAIT)); // multiple wait commands are not allowed
 			List<Action> actions3 = Arrays.asList(new Action(Type.WAIT), new Action(Type.DEPLOY, 0, 1));
 			
-			referee.validateActions(actions1, Owner.PLAYER_1); // valid -> expect no exception
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
-			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			validateActions(actions1, Owner.PLAYER_1); // valid -> expect no exception
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> validateActions(actions3, Owner.PLAYER_1));
 			
 			assertTrue(invalidAction2.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
 			assertTrue(invalidAction3.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
 		}
 		
 		@Test
-		public void test_wait__cannot_be_mixed_with_other_actions__move_turn() throws Exception {
+		public void test_wait__cannot_be_mixed_with_other_actions__move_turn() throws Throwable {
 			setTurnType(TurnType.MOVE_TROOPS);
 			setFieldProperties(0, Owner.PLAYER_1, 1);
 			
@@ -403,9 +403,9 @@ public class RefereeTest {
 			List<Action> actions2 = Arrays.asList(new Action(Type.WAIT), new Action(Type.WAIT)); // multiple wait commands are not allowed
 			List<Action> actions3 = Arrays.asList(new Action(Type.WAIT), new Action(Type.MOVE, 0, 1, 1));
 			
-			referee.validateActions(actions1, Owner.PLAYER_1); // valid -> expect no exception
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions2, Owner.PLAYER_1));
-			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> referee.validateActions(actions3, Owner.PLAYER_1));
+			validateActions(actions1, Owner.PLAYER_1); // valid -> expect no exception
+			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
+			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> validateActions(actions3, Owner.PLAYER_1));
 			
 			assertTrue(invalidAction2.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
 			assertTrue(invalidAction3.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
@@ -418,6 +418,10 @@ public class RefereeTest {
 		private void mockStartingFieldChoice() throws NoSuchFieldException, IllegalAccessException {
 			StartingFieldChoice startingFieldChoice = new StartingFieldChoice(0); // will set the number of starting fields to the minimum of 3
 			TestUtils.setFieldPerReflection(referee, "startingFieldChoice", startingFieldChoice);
+		}
+		
+		private void validateActions(List<Action> actions, Owner player) throws Throwable {
+			TestUtils.invokePrivateMethod(referee, "validateActions", new Class<?>[] {List.class, Owner.class}, actions, player);
 		}
 	}
 	

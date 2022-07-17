@@ -172,7 +172,7 @@ public class Referee extends AbstractReferee {
 		return null;
 	}
 	
-	protected void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
+	private void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
 		Optional<Field> pickedField;
 		Map<Integer, List<Integer>> movementTargets = new HashMap<>();
 		int[] sumOfTroopsMovedOutOfField = new int[map.fields.size()];
@@ -324,7 +324,7 @@ public class Referee extends AbstractReferee {
 		gameManager.endGame();
 	}
 	
-	protected void executeActions(List<Action> actions1, List<Action> actions2) {
+	private void executeActions(List<Action> actions1, List<Action> actions2) {
 		int minMoves = Math.min(actions1.size(), actions2.size());
 		
 		// every two moves of the players are executed simultaneously (in the order of the list) 
