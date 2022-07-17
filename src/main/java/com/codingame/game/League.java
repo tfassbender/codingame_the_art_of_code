@@ -2,26 +2,24 @@ package com.codingame.game;
 
 public enum League {
 	
-	LEAGUE_1(1), //
-	LEAGUE_2(2), //
-	LEAGUE_3(3); //
+	LEAGUE_1(1, false), //
+	LEAGUE_2(2, true), //
+	LEAGUE_3(3, true); //
 	
-	private final int level;
+	public final int level;
+	public final boolean pickCommandEnabled;
 	
-	private League(int level) {
+	private League(int level, boolean pickCommandEnabled) {
 		this.level = level;
+		this.pickCommandEnabled = pickCommandEnabled;
 	}
 	
 	public static League getByLevel(int level) {
 		for (League league : values()) {
-			if (league.getLevel() == level) {
+			if (league.level == level) {
 				return league;
 			}
 		}
 		throw new IllegalStateException("Unknown league level: " + level);
-	}
-	
-	public int getLevel() {
-		return level;
 	}
 }

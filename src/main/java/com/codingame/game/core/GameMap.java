@@ -1,5 +1,6 @@
 package com.codingame.game.core;
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.codingame.game.util.Pair;
@@ -26,5 +27,9 @@ public class GameMap {
 	public int calculateDeployableTroops(Owner player) {
 		//TODO
 		return 0;
+	}
+	
+	public Optional<Field> getFieldById(int id) {
+		return fields.stream().filter(field -> field.id == id).findFirst();
 	}
 }

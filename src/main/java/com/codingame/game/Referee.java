@@ -1,7 +1,9 @@
 package com.codingame.game;
 
 import java.util.List;
+import java.util.Optional;
 
+import com.codingame.game.Action.Type;
 import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
@@ -90,24 +92,8 @@ public class Referee extends AbstractReferee {
 		player1.execute();
 		player2.execute();
 		
-		for (Player player : gameManager.getActivePlayers()) {
-			try {
-				List<Action> actions = player.getMoves();
-				// Check validity of the player output and compute the new game state
-			}
-			catch (TimeoutException e) {
-				player.deactivate(String.format("$%d timeout!", player.getIndex()));
-			} catch (NumberFormatException e) {
-				player.deactivate("Wrong output!");
-				player.setScore(-1);
-				endGame();
-			} catch (InvalidAction e) {
-				String deactivateMessage = e.getMessage();
-				player.deactivate(deactivateMessage);
-				player.setScore(-1);
-				endGame();
-			}
-		}
+		getActions(player1, Owner.PLAYER_1);
+		getActions(player2, Owner.PLAYER_2);
 	}
 	
 	/**
@@ -144,6 +130,109 @@ public class Referee extends AbstractReferee {
 			
 			player.sendInputLine(field.id + " " + field.getTroops() + " " + owner);
 		}
+	}
+	
+	private void getActions(Player player, Owner owner) {
+		try {
+			List<Action> actions = player.getMoves();
+			validateActions(actions, owner);
+		}
+		catch (TimeoutException e) {
+			player.deactivate(String.format("$%d timeout!", player.getIndex()));
+		}
+		catch (NumberFormatException e) {
+			player.deactivate("Wrong output!");
+			player.setScore(-1);
+			endGame();
+		}
+		catch (InvalidActionException e) {
+			String deactivateMessage = e.getMessage();
+			player.deactivate(deactivateMessage);
+			player.setScore(-1);
+			endGame();
+		}
+	}
+	
+	protected void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
+		for (Action action : actions) {
+			switch (action.getType()) {
+				case PICK:
+					if (turnType != TurnType.CHOOSE_STARTING_FIELDS) {
+						throw createInvalidActionTypeException(Type.PICK, TurnType.CHOOSE_STARTING_FIELDS);
+					}
+					if (!league.pickCommandEnabled) {
+						throw new InvalidActionException("The command " + Type.PICK + " is not enabled in this league. Please use " + //
+								Type.RANDOM + " instead.");
+					}
+					Optional<Field> pickedField = map.getFieldById(action.getTargetId());
+					if (pickedField.isEmpty()) {
+						throw new InvalidActionException("A field with the id " + action.getTargetId() + " does not exist.");
+					}
+					else if (pickedField.get().getOwner() != Owner.NEUTRAL) {
+						throw new InvalidActionException("The field with the id " + action.getTargetId() + " was already picked.");
+					}
+					break;
+				case DEPLOY:
+					if (turnType != TurnType.DEPLOY_TROOPS) {
+						throw createInvalidActionTypeException(Type.DEPLOY, TurnType.DEPLOY_TROOPS);
+					}
+					//TODO
+					break;
+				case MOVE:
+					if (turnType != TurnType.MOVE_TROOPS) {
+						throw createInvalidActionTypeException(Type.MOVE, TurnType.MOVE_TROOPS);
+					}
+					//TODO
+					break;
+				case RANDOM:
+					if (turnType != TurnType.CHOOSE_STARTING_FIELDS) {
+						throw createInvalidActionTypeException(Action.Type.RANDOM, TurnType.CHOOSE_STARTING_FIELDS);
+					}
+					break;
+				case WAIT:
+					if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
+						throw new InvalidActionException("The action " + Type.WAIT + " cannot be used in '" + TurnType.CHOOSE_STARTING_FIELDS + //
+								"' turns. Please use " + Type.RANDOM + " if you don't want to choose the fields yourself.");
+					}
+					break;
+				default:
+					throw new IllegalStateException("Unknown action type: " + action.getType());
+			}
+		}
+		
+		// all actions are valid by itself
+		switch (turnType) {
+			case CHOOSE_STARTING_FIELDS:
+				boolean containsRandomAction = actions.stream().anyMatch(action -> action.getType() == Type.RANDOM);
+				long pickActions = actions.stream().filter(action -> action.getType() == Type.PICK).count();
+				int fieldsToPick = startingFieldChoice.getStartingFieldsLeft(player);
+				if (containsRandomAction) {
+					if (pickActions > 0) {
+						throw new InvalidActionException("The actions " + Type.PICK + " and " + Type.RANDOM + " cannot be mixed.");
+					}
+				}
+				else {
+					if (pickActions < fieldsToPick) {
+						throw new InvalidActionException("Not enough fields were picked. You need to pick " + fieldsToPick + //
+								" fields but you picked only " + pickActions + ".");
+					}
+					if (pickActions > fieldsToPick) {
+						throw new InvalidActionException("To many fields were picked. You need to pick " + fieldsToPick + //
+								" fields but you picked " + pickActions + ".");
+					}
+				}
+				break;
+			case DEPLOY_TROOPS:
+				break;
+			case MOVE_TROOPS:
+				break;
+			default:
+				throw new IllegalStateException("Unknown turn type: " + turnType);
+		}
+	}
+	
+	private InvalidActionException createInvalidActionTypeException(Action.Type actionType, TurnType expectedTurn) {
+		return new InvalidActionException("The action " + actionType + " cannot be used in this turn, but only in turns of type '" + expectedTurn + "'");
 	}
 	
 	private void endGame() {

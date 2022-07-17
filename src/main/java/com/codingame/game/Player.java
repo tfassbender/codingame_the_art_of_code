@@ -15,7 +15,7 @@ public class Player extends AbstractMultiplayerPlayer {
 		return 1;
 	}
 	
-	public List<Action> getMoves() throws TimeoutException, NumberFormatException, InvalidAction {
+	public List<Action> getMoves() throws TimeoutException, NumberFormatException, InvalidActionException {
 		List<Action> actions = new ArrayList<Action>();
 		String output = getOutputs().get(0);
 		
@@ -27,44 +27,47 @@ public class Player extends AbstractMultiplayerPlayer {
 		return actions;
 	}
 	
-	private Action parseMove(String output) throws NumberFormatException, InvalidAction {
+	private Action parseMove(String output) throws NumberFormatException, InvalidActionException {
 		Action action = null;
 		String[] parts = output.split(" ");
 		
 		if (parts.length < 1) {
-			throw new InvalidAction("No action is given");
-		} 
+			throw new InvalidActionException("No action is given");
+		}
 		
 		String type = parts[0];
 		
 		if (Action.Type.RANDOM.toString().equals(type)) {
 			return new Action(Action.Type.RANDOM);
-		} else if (parts.length < 2) {
-			throw new InvalidAction("Missing field id in output: "+output);
+		}
+		else if (parts.length < 2) {
+			throw new InvalidActionException("Missing field id in output: " + output);
 		}
 		
-		if (Action.Type.CHOOSE_STARTING_POSITION.toString().equals(type)) {
-			action = new Action(Action.Type.CHOOSE_STARTING_POSITION, Integer.parseInt(parts[1]));
-		} else if (Action.Type.DEPLOY_TROOPS.toString().equals(type)) {
+		if (Action.Type.PICK.toString().equals(type)) {
+			action = new Action(Action.Type.PICK, Integer.parseInt(parts[1]));
+		}
+		else if (Action.Type.DEPLOY.toString().equals(type)) {
 			if (parts.length < 3) {
-				throw new InvalidAction("Missing number of troops for action: "+type);
+				throw new InvalidActionException("Missing number of troops for action: " + type);
 			}
 			
-			action = new Action(Action.Type.DEPLOY_TROOPS, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
-		} else if (Action.Type.MOVEMENT.toString().equals(type)) {
+			action = new Action(Action.Type.DEPLOY, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+		}
+		else if (Action.Type.MOVE.toString().equals(type)) {
 			if (parts.length < 3) {
-				throw new InvalidAction("Missing source id for action: "+type);
+				throw new InvalidActionException("Missing source id for action: " + type);
 			}
 			
 			if (parts.length < 4) {
-				throw new InvalidAction("Missing number of troops for action: "+type);
+				throw new InvalidActionException("Missing number of troops for action: " + type);
 			}
 			
-			action = new Action(Action.Type.MOVEMENT, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]),  Integer.parseInt(parts[3]));
-		} else {
-			throw new InvalidAction("Invalid action type: "+type);
+			action = new Action(Action.Type.MOVE, Integer.parseInt(parts[1]), Integer.parseInt(parts[2]), Integer.parseInt(parts[3]));
 		}
-		
+		else {
+			throw new InvalidActionException("Invalid action type: " + type);
+		}
 		
 		return action;
 	}

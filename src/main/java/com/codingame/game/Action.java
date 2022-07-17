@@ -1,7 +1,5 @@
 package com.codingame.game;
 
-import com.codingame.game.core.Movement;
-
 /**
  * An action that was parsed from the player's output.
  */
@@ -10,20 +8,16 @@ public class Action {
 	public static final int NO_SELECTION = -1;
 	
 	public static enum Type {
-		CHOOSE_STARTING_POSITION, //
-		DEPLOY_TROOPS, //
-		MOVEMENT, //
-		RANDOM; //
 		
+		PICK, //
+		DEPLOY, //
+		MOVE, //
+		RANDOM, //
+		WAIT; //
+		
+		@Override
 		public String toString() {
-			switch(this) {
-			case CHOOSE_STARTING_POSITION: return "PICK";
-			case DEPLOY_TROOPS: return "DEPLOY";
-			case MOVEMENT: return "MOVE";
-			case RANDOM: return "RANDOM";
-			default:
-				throw new IllegalStateException("Unknown action type");
-			}
+			return name();
 		}
 	}
 	
@@ -67,14 +61,19 @@ public class Action {
 		return numTroops;
 	}
 	
+	@Override
 	public String toString() {
-		switch(type) {
-		case CHOOSE_STARTING_POSITION: return String.format("%s %d", type, targetId);
-		case DEPLOY_TROOPS: return String.format("%s %d %d", type, targetId, numTroops);
-		case MOVEMENT: return String.format("%s %d %d %d", type, targetId, sourceId, numTroops);
-		case RANDOM: return String.format("%s", type);
-		default:
-			throw new IllegalStateException("Invalid action state");
+		switch (type) {
+			case PICK:
+				return String.format("%s %d", type, targetId);
+			case DEPLOY:
+				return String.format("%s %d %d", type, targetId, numTroops);
+			case MOVE:
+				return String.format("%s %d %d %d", type, targetId, sourceId, numTroops);
+			case RANDOM:
+				return String.format("%s", type);
+			default:
+				throw new IllegalStateException("Invalid action state");
 		}
 	}
 }
