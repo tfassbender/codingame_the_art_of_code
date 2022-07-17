@@ -6,7 +6,9 @@
 
 Das Spiel soll ähnlich wie Rsiko funktionieren:
 - Spieler können Einheiten auf der Karte verteilen, die sich gegenseitig bekämpfen um gebiete zu erobern
-  - Jeder Spieler erhällt pro Zug eine vorgegebene Anzahl an neuen Einheiten (ca. 5-10)
+  - Jeder Spieler erhällt pro Zug eine vorgegebene Anzahl an neuen Einheiten (ca. 5-10)  
+    ? Was passiert, wenn ein Spieler nicht alle Truppen deployed, die er in einem Zug zur Verfügung hätte?  
+    > Ich würde sagen, dann kann er die Truppen behallten und in der nächsten Runde deployen. Das ermöglicht die Strategie, Truppen zurück zu hallten um sie später einzusetzen (ich bin ziemlich sicher, dass diese Strategie nichts taugt, aber das sollen die Spieler erst mal selbst herausfinden ;D)
   - Das spielfeld soll in mehrere (kleine) Regionen aus mehreren Gebieten aufgeteilt werden
     - Für jede der Regionen, die ein Spieler komplett kontrolliert erhällt er zusätzliche Einheiten zu Beginn einer Runde
   - Zusätzliche Einheiten auch für eine bestimmte Anzahl an Feldern vergeben (egal ob sie eine zusammenhängende Region bilden)

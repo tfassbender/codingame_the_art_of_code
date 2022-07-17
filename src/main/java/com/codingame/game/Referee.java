@@ -1,6 +1,9 @@
 package com.codingame.game;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.codingame.game.Action.Type;
@@ -112,9 +115,14 @@ public class Referee extends AbstractReferee {
 		// next line: two integers - the number of troops that each player can deploy (your input is always first; 0 in all turn types but DEPLOY_TROOPS)
 		player.sendInputLine(map.calculateDeployableTroops(playerId) + " " + map.calculateDeployableTroops(playerId.getOpponent()));
 		
-		// TODO enable only in higher leagues
-		// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
-		player.sendInputLine(startingFieldChoice.getStartingFieldsLeft(playerId) + " " + startingFieldChoice.getStartingFieldsLeft(playerId.getOpponent()));
+		if (league.pickCommandEnabled) {
+			// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
+			player.sendInputLine(startingFieldChoice.getStartingFieldsLeft(playerId) + " " + startingFieldChoice.getStartingFieldsLeft(playerId.getOpponent()));
+		}
+		else {
+			// next line: two integers - ignore in this league
+			player.sendInputLine("0 0");
+		}
 		
 		// next line: the NUMBER_OF_FIELDS on the map
 		player.sendInputLine(Integer.toString(map.fields.size()));
@@ -154,6 +162,12 @@ public class Referee extends AbstractReferee {
 	}
 	
 	protected void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
+		Optional<Field> pickedField;
+		Map<Integer, List<Integer>> movementTargets = new HashMap<>();
+		int[] sumOfTroopsMovedOutOfField = new int[map.fields.size()];
+		
+		// check all actions by themselves
+		
 		for (Action action : actions) {
 			switch (action.getType()) {
 				case PICK:
@@ -164,7 +178,7 @@ public class Referee extends AbstractReferee {
 						throw new InvalidActionException("The command " + Type.PICK + " is not enabled in this league. Please use " + //
 								Type.RANDOM + " instead.");
 					}
-					Optional<Field> pickedField = map.getFieldById(action.getTargetId());
+					pickedField = map.getFieldById(action.getTargetId());
 					if (pickedField.isEmpty()) {
 						throw new InvalidActionException("A field with the id " + action.getTargetId() + " does not exist.");
 					}
@@ -176,13 +190,60 @@ public class Referee extends AbstractReferee {
 					if (turnType != TurnType.DEPLOY_TROOPS) {
 						throw createInvalidActionTypeException(Type.DEPLOY, TurnType.DEPLOY_TROOPS);
 					}
-					//TODO
+					pickedField = map.getFieldById(action.getTargetId());
+					if (pickedField.isEmpty()) {
+						throw new InvalidActionException("A field with the id " + action.getTargetId() + " does not exist.");
+					}
+					else if (pickedField.get().getOwner() != player) {
+						throw new InvalidActionException("Cannot " + Type.DEPLOY + " to field " + action.getTargetId() + //
+								". You don't controll this field.");
+					}
 					break;
 				case MOVE:
 					if (turnType != TurnType.MOVE_TROOPS) {
 						throw createInvalidActionTypeException(Type.MOVE, TurnType.MOVE_TROOPS);
 					}
-					//TODO
+					Optional<Field> sourceField = pickedField = map.getFieldById(action.getSourceId());
+					Optional<Field> targetField = pickedField = map.getFieldById(action.getTargetId());
+					if (sourceField.isEmpty()) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " from field " + action.getSourceId() + //
+								". A field with the id " + action.getSourceId() + " does not exist.");
+					}
+					if (targetField.isEmpty()) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " to field " + action.getTargetId() + //
+								". A field with the id " + action.getTargetId() + " does not exist.");
+					}
+					if (sourceField.get().getOwner() != player) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " from field " + action.getSourceId() + //
+								". You don't controll this field.");
+					}
+					if (action.getSourceId() == action.getTargetId()) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " from field " + action.getSourceId() + //
+								" to field " + action.getTargetId() + ". A move must be to a different field.");
+					}
+					if (!map.isFieldsConnected(action.getSourceId(), action.getTargetId())) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " from field " + action.getSourceId() + //
+								" to field " + action.getTargetId() + ". The fields are not connected.");
+					}
+					if (action.getNumTroops() <= 0) {
+						throw new InvalidActionException("Cannot execute a " + Type.MOVE + " command with no troops. " + //
+								"You must move at least 1 troop.");
+					}
+					
+					sumOfTroopsMovedOutOfField[action.getSourceId()] += action.getNumTroops();
+					if (sumOfTroopsMovedOutOfField[action.getSourceId()] > sourceField.get().getTroops()) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " a total number of " + //
+								sumOfTroopsMovedOutOfField[action.getSourceId()] + " (or more) troops from field " + action.getSourceId() + //
+								". The field only contains " + sourceField.get().getTroops() + " troops.");
+					}
+					
+					List<Integer> targetsFromSourceField = movementTargets.computeIfAbsent(action.getSourceId(), i -> new ArrayList<>());
+					if (targetsFromSourceField.contains(action.getTargetId())) {
+						throw new InvalidActionException("Cannot " + Type.MOVE + " from field " + action.getSourceId() + //
+								" to field " + action.getTargetId() + " with multiple commands. " + //
+								"Only one move with the same source and target is allowed.");
+					}
+					targetsFromSourceField.add(action.getTargetId());
 					break;
 				case RANDOM:
 					if (turnType != TurnType.CHOOSE_STARTING_FIELDS) {
@@ -192,7 +253,7 @@ public class Referee extends AbstractReferee {
 				case WAIT:
 					if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
 						throw new InvalidActionException("The action " + Type.WAIT + " cannot be used in '" + TurnType.CHOOSE_STARTING_FIELDS + //
-								"' turns. Please use " + Type.RANDOM + " if you don't want to choose the fields yourself.");
+								"' turns. Use " + Type.RANDOM + " if you don't want to choose the fields yourself.");
 					}
 					break;
 				default:
@@ -200,7 +261,8 @@ public class Referee extends AbstractReferee {
 			}
 		}
 		
-		// all actions are valid by itself
+		// all actions are valid by themselves - check the combination
+		
 		switch (turnType) {
 			case CHOOSE_STARTING_FIELDS:
 				boolean containsRandomAction = actions.stream().anyMatch(action -> action.getType() == Type.RANDOM);
@@ -223,6 +285,12 @@ public class Referee extends AbstractReferee {
 				}
 				break;
 			case DEPLOY_TROOPS:
+				int totalDeployedTroops = actions.stream().filter(action -> action.getType() == Type.DEPLOY).mapToInt(Action::getNumTroops).sum();
+				int allowedDeployments = map.calculateDeployableTroops(player);
+				if (totalDeployedTroops > allowedDeployments) {
+					throw new InvalidActionException("Cannot " + Type.DEPLOY + " " + totalDeployedTroops + //
+							" troops in total. You can only deploy " + allowedDeployments + " troops in this turn.");
+				}
 				break;
 			case MOVE_TROOPS:
 				break;

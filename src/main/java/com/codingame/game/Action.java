@@ -31,17 +31,17 @@ public class Action {
 	}
 	
 	public Action(Type type, int targetId) {
-		this(type, targetId, NO_SELECTION, 0);
+		this(type, NO_SELECTION, targetId, 0);
 	}
 	
 	public Action(Type type, int targetId, int numTroops) {
-		this(type, targetId, NO_SELECTION, numTroops);
+		this(type, NO_SELECTION, targetId, numTroops);
 	}
 	
-	public Action(Type type, int targetId, int sourceId, int numTroops) {
+	public Action(Type type, int sourceId, int targetId, int numTroops) {
 		this.type = type;
-		this.targetId = targetId;
 		this.sourceId = sourceId;
+		this.targetId = targetId;
 		this.numTroops = numTroops;
 	}
 	

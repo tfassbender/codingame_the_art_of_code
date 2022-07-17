@@ -26,10 +26,17 @@ public class GameMap {
 	
 	public int calculateDeployableTroops(Owner player) {
 		//TODO
+		
+		// TODO if not all troops are deployed in a turn, they are added the the number of troops of the next turn
 		return 0;
 	}
 	
 	public Optional<Field> getFieldById(int id) {
 		return fields.stream().filter(field -> field.id == id).findFirst();
+	}
+	
+	public boolean isFieldsConnected(int sourceId, int targetId) {
+		return connections.stream().anyMatch(pair -> pair.getKey().id == sourceId && pair.getValue().id == targetId || //
+				pair.getKey().id == targetId && pair.getValue().id == sourceId);
 	}
 }
