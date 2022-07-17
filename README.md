@@ -12,6 +12,7 @@ TODO add rules
 - [:heavy_check_mark: Dominik - master] Create a hard-coded map (for testing)
 - [:heavy_check_mark: Tobias - referee_send_move, master] Let the referee send the current game state to the players
 - [:heavy_check_mark: Dominik - referee_parse_move, master] Let the referee parse the players moves to Actions (that can be executed)
+- [:hammer_and_wrench: Tobias - referee_validate_actions] Validate, that all actions from the player are valid and can be executed
 - Execute moves (in the map class)
   - Choose starting field
   - Deploy troop / Move troop
