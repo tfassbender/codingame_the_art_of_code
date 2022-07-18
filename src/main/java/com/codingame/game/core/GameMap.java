@@ -46,9 +46,9 @@ public class GameMap {
 				Field field1 = getFieldById(action1.getSourceId()).get();
 				Field field2 = getFieldById(action2.getSourceId()).get();
 				
-				// the attacking field could have already lost troops, so the number of attackers might be limited
-				int attackingTroops1 = Math.min(action2.getNumTroops(), field2.getTroops());
-				int attackingTroops2 = Math.min(action1.getNumTroops(), field1.getTroops());
+				// all troops fight, because those that would not attack would defend (all are handled as attackers with 60% kill rate)
+				int attackingTroops1 = field2.getTroops();
+				int attackingTroops2 = field1.getTroops();
 				
 				// execute the attack simultaneously - both fields loose 60% of troops
 				float killedTroopsOnField1 = Math.min(field1.getTroops(), TROOPS_KILLED_BY_ATTACK * attackingTroops1);
@@ -83,16 +83,17 @@ public class GameMap {
 					movementTarget = field1;
 					winningAction = action2;
 				}
-				else {
+				else if (field2.getTroops() == 0 && field1.getTroops() > 0) {
 					// move the remaining troops from field 1 to field 2
-					movementSource = field2;
-					movementTarget = field1;
+					movementSource = field1;
+					movementTarget = field2;
 					winningAction = action1;
 				}
+				// else: noone conquered the other's field, so no movement is executed
 				
 				// move troops and change the ownership of the field
 				if (movementSource != null && movementTarget != null && winningAction != null) {
-					int movedTroops = Math.max(movementSource.getTroops(), winningAction.getNumTroops());
+					int movedTroops = Math.min(movementSource.getTroops(), winningAction.getNumTroops());
 					movementSource.setTroops(movementSource.getTroops() - movedTroops);
 					movementTarget.setTroops(movedTroops);
 					movementTarget.setOwner(winningAction.getOwner());
@@ -102,7 +103,10 @@ public class GameMap {
 			else if (action1.getTargetId() == action2.getSourceId() || action2.getTargetId() == action1.getSourceId()) {
 				executedSimultaneously = true;
 				
-				// the actions can be executed independent, but the order is important
+				/*
+				 * The actions can be executed independent, but the order is important:
+				 * The attack on the shared field is executed first
+				 */
 				if (action1.getTargetId() == action2.getSourceId()) {
 					executeIndependent(action1);
 					executeIndependent(action2);
@@ -110,6 +114,28 @@ public class GameMap {
 				else {
 					executeIndependent(action2);
 					executeIndependent(action1);
+				}
+			}
+			// ... both actions have the same target field
+			else if (action1.getTargetId() == action2.getTargetId()) {
+				executedSimultaneously = true;
+				
+				Field targetField = getFieldById(action1.getTargetId()).get();
+				/*
+				 * If one player controls the field, the actions can be executed independent, but the order is important: 
+				 * The player who controls the field acts first
+				 */
+				if (targetField.getOwner() == action1.getOwner()) {
+					executeIndependent(action1);
+					executeIndependent(action2);
+				}
+				else if (targetField.getOwner() == action2.getOwner()) {
+					executeIndependent(action2);
+					executeIndependent(action1);
+				}
+				// the target field is neutral, so the battle is executed like two connected fields attack each other (neutral troops are ignored)
+				else {
+					//TODO
 				}
 			}
 		}
@@ -146,45 +172,61 @@ public class GameMap {
 	}
 	
 	private void executeMovement(Action action) {
-		// we already validated, that these fields exist (in the Referee), so calling get without isPresent won't lead to an NPE
-		Field attackingField = getFieldById(action.getSourceId()).get();
-		Field defendingField = getFieldById(action.getTargetId()).get();
-		
-		// the attacking field could have already lost troops, so the number of attackers might be limited
-		int attackingTroops = Math.min(action.getNumTroops(), attackingField.getTroops());
-		// all troops on the defending field fight
-		
-		// 60% of attackers kill a defender - 70% of defenders kill an attacker
-		float killedTroopsOnDefendingField = Math.min(defendingField.getTroops(), TROOPS_KILLED_BY_ATTACK * attackingTroops);
-		float killedAttackingTroops = Math.min(attackingTroops, TROOPS_KILLED_BY_DEFENCE * defendingField.getTroops());
-		
-		int killedTroopsOnDefendingFieldRoundedUp = (int) Math.ceil(killedTroopsOnDefendingField);
-		int killedAttackingTroopsRoundedUp = (int) Math.ceil(killedAttackingTroops);
-		
-		// update the troops on the field
-		attackingField.setTroops(Math.max(0, attackingField.getTroops() - killedAttackingTroopsRoundedUp));
-		defendingField.setTroops(Math.max(0, defendingField.getTroops() - killedTroopsOnDefendingFieldRoundedUp));
-		
-		float decimalLossOnAttackingField = killedAttackingTroopsRoundedUp - killedAttackingTroops;
-		float decimalLossOnDefendingField = killedTroopsOnDefendingFieldRoundedUp - killedTroopsOnDefendingField;
-		
-		// update the decimal losses on both sides
-		if (action.getOwner() == Owner.PLAYER_1) {
-			roundingLossPlayer1 += decimalLossOnAttackingField;
-			roundingLossPlayer2 += decimalLossOnDefendingField;
+		if (isAttack(action)) {
+			// we already validated, that these fields exist (in the Referee), so calling get without isPresent won't lead to an NPE
+			Field attackingField = getFieldById(action.getSourceId()).get();
+			Field defendingField = getFieldById(action.getTargetId()).get();
+			
+			// the attacking field could have already lost troops, so the number of attackers might be limited
+			int attackingTroops = Math.min(action.getNumTroops(), attackingField.getTroops());
+			// all troops on the defending field fight
+			
+			// 60% of attackers kill a defender - 70% of defenders kill an attacker
+			float killedTroopsOnDefendingField = Math.min(defendingField.getTroops(), TROOPS_KILLED_BY_ATTACK * attackingTroops);
+			float killedAttackingTroops = Math.min(attackingTroops, TROOPS_KILLED_BY_DEFENCE * defendingField.getTroops());
+			
+			int killedTroopsOnDefendingFieldRoundedUp = (int) Math.ceil(killedTroopsOnDefendingField);
+			int killedAttackingTroopsRoundedUp = (int) Math.ceil(killedAttackingTroops);
+			
+			// update the troops on the field
+			attackingField.setTroops(Math.max(0, attackingField.getTroops() - killedAttackingTroopsRoundedUp));
+			defendingField.setTroops(Math.max(0, defendingField.getTroops() - killedTroopsOnDefendingFieldRoundedUp));
+			
+			float decimalLossOnAttackingField = killedAttackingTroopsRoundedUp - killedAttackingTroops;
+			float decimalLossOnDefendingField = killedTroopsOnDefendingFieldRoundedUp - killedTroopsOnDefendingField;
+			
+			// update the decimal losses on both sides
+			if (action.getOwner() == Owner.PLAYER_1) {
+				roundingLossPlayer1 += decimalLossOnAttackingField;
+				roundingLossPlayer2 += decimalLossOnDefendingField;
+			}
+			else {
+				roundingLossPlayer1 += decimalLossOnDefendingField;
+				roundingLossPlayer2 += decimalLossOnAttackingField;
+			}
+			
+			if (defendingField.getTroops() == 0 && killedAttackingTroopsRoundedUp < attackingTroops) {
+				// move the remaining attacking troops to the attacked field (if all defenders are killed and attackers remain)
+				int movedTroops = attackingTroops - killedAttackingTroopsRoundedUp;
+				attackingField.setTroops(attackingField.getTroops() - movedTroops);
+				defendingField.setTroops(movedTroops);
+				defendingField.setOwner(action.getOwner());
+			}
 		}
 		else {
-			roundingLossPlayer1 += decimalLossOnDefendingField;
-			roundingLossPlayer2 += decimalLossOnAttackingField;
+			// no attack - just move the troops
+			Field sourceField = getFieldById(action.getSourceId()).get();
+			Field targetField = getFieldById(action.getTargetId()).get();
+			
+			int movedTroops = Math.min(sourceField.getTroops(), action.getNumTroops());
+			
+			sourceField.setTroops(sourceField.getTroops() - movedTroops);
+			targetField.setTroops(targetField.getTroops() + movedTroops);
 		}
-		
-		if (defendingField.getTroops() == 0 && killedAttackingTroopsRoundedUp < attackingTroops) {
-			// move the remaining attacking troops to the attacked field (if all defenders are killed and attackers remain)
-			int movedTroops = attackingTroops - killedAttackingTroopsRoundedUp;
-			attackingField.setTroops(attackingField.getTroops() - movedTroops);
-			defendingField.setTroops(movedTroops);
-			defendingField.setOwner(action.getOwner());
-		}
+	}
+	
+	private boolean isAttack(Action action) {
+		return getFieldById(action.getSourceId()).get().getOwner() != getFieldById(action.getTargetId()).get().getOwner();
 	}
 	
 	public int calculateDeployableTroops(Owner player) {

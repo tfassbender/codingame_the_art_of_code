@@ -184,7 +184,7 @@ public class GameMapTest {
 			Field targetField = map.getFieldById(1).get();
 			
 			assertEquals(Owner.PLAYER_1, sourceField.getOwner());
-			assertEquals(Owner.PLAYER_2, targetField.getOwner());
+			assertEquals(Owner.PLAYER_1, targetField.getOwner());
 			assertEquals(1, sourceField.getTroops());
 			assertEquals(5, targetField.getTroops(), "troops are summed, because both fields are controlled by PLAYER_1");
 			
@@ -193,9 +193,29 @@ public class GameMapTest {
 		}
 		
 		@Test
+		public void test_execute_independent__move_without_attack__more_troops_moved_than_present_on_the_source_field() throws Exception {
+			setFieldProperties(0, Owner.PLAYER_1, 3);
+			setFieldProperties(1, Owner.PLAYER_1, 3); // both fields are controlled by PLAYER_1
+			
+			// the action is allowed, because there could have been 5 troops on the attacking field, but 2 were killed in an earlier attack (towards the attacking field)
+			map.executeIndependent(new Action(Type.MOVE, 0, 1, 5).setOwner(Owner.PLAYER_1));
+			
+			Field sourceField = map.getFieldById(0).get();
+			Field targetField = map.getFieldById(1).get();
+			
+			assertEquals(Owner.PLAYER_1, sourceField.getOwner());
+			assertEquals(Owner.PLAYER_1, targetField.getOwner());
+			assertEquals(0, sourceField.getTroops());
+			assertEquals(6, targetField.getTroops(), "troops are summed, because both fields are controlled by PLAYER_1");
+			
+			assertEquals(0f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "no battles were executed, so there is no rounding loss");
+			assertEquals(0f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "no battles were executed, so there is no rounding loss");
+		}
+		
+		@Test
 		public void test_execute_simultaneously__fields_attacking_each_other__no_field_is_conquered() throws Exception {
-			setFieldProperties(0, Owner.PLAYER_1, 10);
-			setFieldProperties(1, Owner.PLAYER_2, 10);
+			setFieldProperties(0, Owner.PLAYER_1, 9);
+			setFieldProperties(1, Owner.PLAYER_2, 8);
 			
 			map.executeSimultaneously(new Action(Type.MOVE, 0, 1, 4).setOwner(Owner.PLAYER_1), new Action(Type.MOVE, 1, 0, 7).setOwner(Owner.PLAYER_2));
 			
@@ -204,11 +224,35 @@ public class GameMapTest {
 			
 			assertEquals(Owner.PLAYER_1, field0.getOwner());
 			assertEquals(Owner.PLAYER_2, field1.getOwner());
-			assertEquals(10 - 5, field0.getTroops(), "5 troops are killed (Math.ceil(7 * 0.6); both kill factors are 0.6 this time, because both are attackers)");
-			assertEquals(10 - 3, field1.getTroops(), "3 troops are killed (Math.ceil(4 * 0.6); both kill factors are 0.6 this time, because both are attackers)");
+			assertEquals(9 - 5, field0.getTroops(), "5 troops are killed (Math.ceil(8 * 0.6); both kill factors are 0.6 this time, because both are attackers; " + //
+					"all troops fight, because those who would not attack would defend)");
+			assertEquals(8 - 6, field1.getTroops(), "6 troops are killed (Math.ceil(9 * 0.6); both kill factors are 0.6 this time, because both are attackers; " + //
+					"all troops fight, because those who would not attack would defend)");
 			
-			assertEquals(0.6f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 2.4 (4 * 0.6); rounding loss is 0.6");
-			assertEquals(0.8f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "kills are 4.2 (7 * 0.6); rounding loss is 0.8");
+			assertEquals(0.2f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 4.8 (8 * 0.6); rounding loss is 0.2");
+			assertEquals(0.6f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "kills are 5.4 (9 * 0.6); rounding loss is 0.6");
+		}
+		
+		@Test
+		public void test_execute_simultaneously__fields_attacking_each_other__no_field_is_conquered__swapped_action_positions() throws Exception {
+			setFieldProperties(0, Owner.PLAYER_1, 9);
+			setFieldProperties(1, Owner.PLAYER_2, 8);
+			
+			// just like the test above, but the actions are swapped
+			map.executeSimultaneously(new Action(Type.MOVE, 1, 0, 7).setOwner(Owner.PLAYER_2), new Action(Type.MOVE, 0, 1, 4).setOwner(Owner.PLAYER_1));
+			
+			Field field0 = map.getFieldById(0).get();
+			Field field1 = map.getFieldById(1).get();
+			
+			assertEquals(Owner.PLAYER_1, field0.getOwner());
+			assertEquals(Owner.PLAYER_2, field1.getOwner());
+			assertEquals(9 - 5, field0.getTroops(), "5 troops are killed (Math.ceil(8 * 0.6); both kill factors are 0.6 this time, because both are attackers; " + //
+					"all troops fight, because those who would not attack would defend)");
+			assertEquals(8 - 6, field1.getTroops(), "6 troops are killed (Math.ceil(9 * 0.6); both kill factors are 0.6 this time, because both are attackers; " + //
+					"all troops fight, because those who would not attack would defend)");
+			
+			assertEquals(0.2f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 4.8 (8 * 0.6); rounding loss is 0.2");
+			assertEquals(0.6f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "kills are 5.4 (9 * 0.6); rounding loss is 0.6");
 		}
 		
 		@Test
@@ -223,10 +267,30 @@ public class GameMapTest {
 			
 			assertEquals(Owner.PLAYER_1, field0.getOwner());
 			assertEquals(Owner.PLAYER_1, field1.getOwner());
-			assertEquals(4, field0.getTroops(), "5 troops move to field 1 and 1 troop is killed on field 0");
+			assertEquals(3, field0.getTroops(), "5 troops move to field 1 and 2 troop are killed on field 0");
 			assertEquals(5, field1.getTroops(), "all defenders are killed; 5 troops move to field 1");
 			
-			assertEquals(0.4f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 0.6 (1 * 0.6); rounding loss is 0.4");
+			assertEquals(0.8f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 1.2 (2 * 0.6); rounding loss is 0.8");
+			assertEquals(0.0f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "kills are 3.0 (5 * 0.6); rounding loss is 0.0");
+		}
+		
+		@Test
+		public void test_execute_simultaneously__fields_attacking_each_other__field_1_is_conquered__swapped_action_positions() throws Exception {
+			setFieldProperties(0, Owner.PLAYER_1, 10);
+			setFieldProperties(1, Owner.PLAYER_2, 2);
+			
+			// just like the test above, but the actions are swapped
+			map.executeSimultaneously(new Action(Type.MOVE, 1, 0, 1).setOwner(Owner.PLAYER_2), new Action(Type.MOVE, 0, 1, 5).setOwner(Owner.PLAYER_1));
+			
+			Field field0 = map.getFieldById(0).get();
+			Field field1 = map.getFieldById(1).get();
+			
+			assertEquals(Owner.PLAYER_1, field0.getOwner());
+			assertEquals(Owner.PLAYER_1, field1.getOwner());
+			assertEquals(3, field0.getTroops(), "5 troops move to field 1 and 2 troop are killed on field 0");
+			assertEquals(5, field1.getTroops(), "all defenders are killed; 5 troops move to field 1");
+			
+			assertEquals(0.8f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 1.2 (2 * 0.6); rounding loss is 0.8");
 			assertEquals(0.0f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "kills are 3.0 (5 * 0.6); rounding loss is 0.0");
 		}
 		
@@ -271,7 +335,7 @@ public class GameMapTest {
 			assertEquals(Owner.PLAYER_2, defendingField.getOwner());
 			assertEquals(Owner.PLAYER_2, field2.getOwner());
 			assertEquals(10 - 5, attackingField.getTroops(), "5 troops are killed; 1 troop moves back to field 0, because not all defenders were killed");
-			assertEquals(1, defendingField.getTroops(), "4 defenders are killed");
+			assertEquals(2, defendingField.getTroops(), "4 defenders are killed");
 			assertEquals(0, field2.getTroops(), "all troops are moved to the defending field");
 			
 			assertEquals(0.8f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are 4.2 (6 * 0.7); rounding loss is 0.8");
