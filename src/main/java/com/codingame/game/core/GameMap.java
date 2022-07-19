@@ -35,107 +35,85 @@ public class GameMap {
 	
 	public void executeSimultaneously(Action action1, Action action2) {
 		boolean executedSimultaneously = false;
+		
+		// only move actions can be dependent
 		if (action1.getType() == Type.MOVE && action2.getType() == Type.MOVE) {
 			// moves need simultaneous execution if ...
 			
-			// ... two fields attack each other
-			if (action1.getSourceId() == action2.getTargetId() && action2.getSourceId() == action1.getTargetId()) {
+			if (// ... two fields attack each other
+			action1.getSourceId() == action2.getTargetId() && action2.getSourceId() == action1.getTargetId() || // OR
+			// ... both actions have the same target field
+					action1.getTargetId() == action2.getTargetId() || // OR
+					// ... one player attacks the source field of the other players move
+					action1.getTargetId() == action2.getSourceId() || action2.getTargetId() == action1.getSourceId()) {
 				executedSimultaneously = true;
+				
+				//*****************************************************************************************************
+				//*** execute the fight between the moving units first
+				//*****************************************************************************************************
 				
 				// we already validated, that these fields exist (in the Referee), so calling get without isPresent won't lead to an NPE
 				Field field1 = getFieldById(action1.getSourceId()).get();
 				Field field2 = getFieldById(action2.getSourceId()).get();
 				
 				// all troops fight, because those that would not attack would defend (all are handled as attackers with 60% kill rate)
-				int attackingTroops1 = field2.getTroops();
-				int attackingTroops2 = field1.getTroops();
+				int attackingTroops1 = action1.getNumTroops();
+				int attackingTroops2 = action2.getNumTroops();
 				
-				// execute the attack simultaneously - both fields loose 60% of troops
-				float killedTroopsOnField1 = Math.min(field1.getTroops(), TROOPS_KILLED_BY_ATTACK * attackingTroops1);
-				float killedTroopsOnField2 = Math.min(field2.getTroops(), TROOPS_KILLED_BY_ATTACK * attackingTroops2);
+				// execute the attack simultaneously - both attacking armies loose 60% of troops
+				float killedTroopsInArmy1 = Math.min(attackingTroops1, TROOPS_KILLED_BY_ATTACK * attackingTroops2);
+				float killedTroopsInArmy2 = Math.min(attackingTroops2, TROOPS_KILLED_BY_ATTACK * attackingTroops1);
 				
-				int killedTroopsOnField1RoundedUp = (int) Math.ceil(killedTroopsOnField1);
-				int killedTroopsOnField2RoundedUp = (int) Math.ceil(killedTroopsOnField2);
+				int killedTroopsInArmy1RoundedUp = (int) Math.ceil(killedTroopsInArmy1);
+				int killedTroopsInArmy2RoundedUp = (int) Math.ceil(killedTroopsInArmy2);
 				
 				// update the troops on the field
-				field1.setTroops(Math.max(0, field1.getTroops() - killedTroopsOnField1RoundedUp));
-				field2.setTroops(Math.max(0, field2.getTroops() - killedTroopsOnField2RoundedUp));
+				field1.setTroops(Math.max(0, field1.getTroops() - killedTroopsInArmy1RoundedUp));
+				field2.setTroops(Math.max(0, field2.getTroops() - killedTroopsInArmy2RoundedUp));
 				
-				float decimalLossField1 = killedTroopsOnField1RoundedUp - killedTroopsOnField1;
-				float decimalLossField2 = killedTroopsOnField2RoundedUp - killedTroopsOnField2;
+				float decimalLossArmy1 = killedTroopsInArmy1RoundedUp - killedTroopsInArmy1;
+				float decimalLossArmy2 = killedTroopsInArmy2RoundedUp - killedTroopsInArmy2;
 				
 				// update the decimal losses on both sides
 				if (action1.getOwner() == Owner.PLAYER_1) {
-					roundingLossPlayer1 += decimalLossField1;
-					roundingLossPlayer2 += decimalLossField2;
+					roundingLossPlayer1 += decimalLossArmy1;
+					roundingLossPlayer2 += decimalLossArmy2;
 				}
 				else {
-					roundingLossPlayer1 += decimalLossField2;
-					roundingLossPlayer2 += decimalLossField1;
+					roundingLossPlayer1 += decimalLossArmy2;
+					roundingLossPlayer2 += decimalLossArmy1;
 				}
 				
-				Field movementSource = null;
-				Field movementTarget = null;
-				Action winningAction = null;
-				if (field1.getTroops() == 0 && field2.getTroops() > 0) {
-					// move the remaining troops from field 2 to field 1
-					movementSource = field2;
-					movementTarget = field1;
-					winningAction = action2;
-				}
-				else if (field2.getTroops() == 0 && field1.getTroops() > 0) {
-					// move the remaining troops from field 1 to field 2
-					movementSource = field1;
-					movementTarget = field2;
-					winningAction = action1;
-				}
-				// else: noone conquered the other's field, so no movement is executed
+				// calculate the number of attackers that survived the attack
+				int leftAttackingTroops1 = attackingTroops1 - killedTroopsInArmy1RoundedUp;
+				int leftAttackingTroops2 = attackingTroops2 - killedTroopsInArmy2RoundedUp;
 				
-				// move troops and change the ownership of the field
-				if (movementSource != null && movementTarget != null && winningAction != null) {
-					int movedTroops = Math.min(movementSource.getTroops(), winningAction.getNumTroops());
-					movementSource.setTroops(movementSource.getTroops() - movedTroops);
-					movementTarget.setTroops(movedTroops);
-					movementTarget.setOwner(winningAction.getOwner());
-				}
-			}
-			// ... one player attacks the source field of the other players move
-			else if (action1.getTargetId() == action2.getSourceId() || action2.getTargetId() == action1.getSourceId()) {
-				executedSimultaneously = true;
+				//*****************************************************************************************************
+				//*** execute the second step if it's not a fight or if only one of the moving armies survived
+				//*****************************************************************************************************
 				
-				/*
-				 * The actions can be executed independent, but the order is important:
-				 * The attack on the shared field is executed first
-				 */
-				if (action1.getTargetId() == action2.getSourceId()) {
-					executeIndependent(action1);
-					executeIndependent(action2);
+				// if only one army survived: let the rest of the troops of this army attack the field
+				Action continuedAction = null;
+				if (leftAttackingTroops1 > 0 && leftAttackingTroops2 == 0) {
+					continuedAction = new Action(Type.MOVE, action1.getSourceId(), action1.getTargetId(), leftAttackingTroops1).setOwner(action1.getOwner());
 				}
-				else {
-					executeIndependent(action2);
-					executeIndependent(action1);
+				else if (leftAttackingTroops2 > 0 && leftAttackingTroops1 == 0) {
+					continuedAction = new Action(Type.MOVE, action2.getSourceId(), action2.getTargetId(), leftAttackingTroops2).setOwner(action2.getOwner());
 				}
-			}
-			// ... both actions have the same target field
-			else if (action1.getTargetId() == action2.getTargetId()) {
-				executedSimultaneously = true;
+				// if both armies survive, but one of them just moves to a field they already own, the move is executed (because it's no second attack)
+				else if (leftAttackingTroops1 > 0 && leftAttackingTroops2 > 0) {
+					Action continuedAction1 = new Action(Type.MOVE, action1.getSourceId(), action1.getTargetId(), leftAttackingTroops1).setOwner(action1.getOwner());
+					Action continuedAction2 = new Action(Type.MOVE, action2.getSourceId(), action2.getTargetId(), leftAttackingTroops2).setOwner(action2.getOwner());
+					if (!isAttack(continuedAction1)) {
+						continuedAction = continuedAction1;
+					}
+					else if (!isAttack(continuedAction2)) {
+						continuedAction = continuedAction2;
+					}
+				}
 				
-				Field targetField = getFieldById(action1.getTargetId()).get();
-				/*
-				 * If one player controls the field, the actions can be executed independent, but the order is important: 
-				 * The player who controls the field acts first
-				 */
-				if (targetField.getOwner() == action1.getOwner()) {
-					executeIndependent(action1);
-					executeIndependent(action2);
-				}
-				else if (targetField.getOwner() == action2.getOwner()) {
-					executeIndependent(action2);
-					executeIndependent(action1);
-				}
-				// the target field is neutral, so the battle is executed like two connected fields attack each other (neutral troops are ignored)
-				else {
-					//TODO
+				if (continuedAction != null) {
+					executeMovement(continuedAction);
 				}
 			}
 		}
