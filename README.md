@@ -17,7 +17,7 @@ TODO add rules
   - Choose starting field
   - [:hammer_and_wrench: Tobias - execute_deploy_and_move] Deploy troop / Move troop
 - Implement a simple view (for testing)
-- Create a simple bot (for testing)
+- [:hammer_and_wrench: Dominik - simple_bot] Create a simple bot (for testing)
 - Create boss bots (not in this repo, so they remain private)
 - Define the Rules (in this .md file)
 - Add the Rules to `config/statement_en.html`
