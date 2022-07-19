@@ -1,5 +1,6 @@
 package com.codingame.game.core;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -19,6 +20,8 @@ public class GameMap {
 	public final Set<Pair<Field, Field>> connections;
 	public final Set<Region> regions;
 	
+	protected StartingFieldChoice startingFieldChoice;
+	
 	/**
 	 * When the killed troops are calculated the value is rounded up. 
 	 * The decimal places are summed up here, so the player gains additional troops in the next deployment phase.
@@ -31,12 +34,13 @@ public class GameMap {
 		this.fields = fields;
 		this.connections = connections;
 		this.regions = regions;
+		
+		startingFieldChoice = new StartingFieldChoice(fields.size());
 	}
 	
 	public void executeSimultaneously(Action action1, Action action2) {
 		boolean executedSimultaneously = false;
 		
-		// only move actions can be dependent
 		if (action1.getType() == Type.MOVE && action2.getType() == Type.MOVE) {
 			// moves need simultaneous execution if ...
 			
@@ -133,12 +137,14 @@ public class GameMap {
 			case MOVE:
 				executeMovement(action);
 				break;
+			case RANDOM:
+				chooseRandomStartingFields(action.getOwner());
+				break;
 			case WAIT:
 				// do nothing
 				break;
 			case PICK:
-			case RANDOM:
-				throw new IllegalStateException("The actions PICK and RANDOM are not handled here."); //TODO define a method for PICK and RANDOM
+				throw new IllegalArgumentException("Picking staring fields cannot be executed independent.");
 			default:
 				throw new IllegalStateException("Unknown action type: " + action.getType());
 		}
@@ -207,6 +213,28 @@ public class GameMap {
 		return getFieldById(action.getSourceId()).get().getOwner() != getFieldById(action.getTargetId()).get().getOwner();
 	}
 	
+	private void chooseRandomStartingFields(Owner owner) {
+		int startingFieldsLeft = startingFieldChoice.getStartingFieldsLeft(owner);
+		List<Integer> startingFields = startingFieldChoice.getStartingFieldIdsForPlayer(owner);
+		int nextStartingFieldIndex = 0;
+		
+		for (int i = 0; i < startingFieldsLeft; i++) {
+			Field field;
+			
+			// choose the next free field from the list
+			do {
+				field = getFieldById(startingFields.get(nextStartingFieldIndex)).get();
+				nextStartingFieldIndex++;
+			} while (field.getOwner() != Owner.NEUTRAL);
+			
+			// deploy a starting troop on the chosen field
+			field.setOwner(owner);
+			field.setTroops(1);
+			
+			startingFieldChoice.decreaseStartingFieldsLeft(owner);
+		}
+	}
+	
 	public int calculateDeployableTroops(Owner player) {
 		//TODO
 		
@@ -229,5 +257,9 @@ public class GameMap {
 	public boolean isFieldsConnected(int sourceId, int targetId) {
 		return connections.stream().anyMatch(pair -> pair.getKey().id == sourceId && pair.getValue().id == targetId || //
 				pair.getKey().id == targetId && pair.getValue().id == sourceId);
+	}
+	
+	public StartingFieldChoice getStartingFieldChoice() {
+		return startingFieldChoice;
 	}
 }

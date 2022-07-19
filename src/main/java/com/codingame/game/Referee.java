@@ -7,12 +7,12 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.codingame.game.Action.Type;
+import com.codingame.game.build.RandomUtil;
 import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
-import com.codingame.game.core.StartingFieldChoice;
 import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.gameengine.core.AbstractPlayer.TimeoutException;
@@ -33,20 +33,18 @@ public class Referee extends AbstractReferee {
 	private GameMap map;
 	
 	private TurnType turnType; //TODO this needs to be updated
-	private StartingFieldChoice startingFieldChoice;
 	
 	@Override
 	public void init() {
+		RandomUtil.init(gameManager.getSeed());
 		league = League.getByLevel(gameManager.getLeagueLevel());
 		gameManager.setFrameDuration(FRAME_DURATION);
 		gameManager.setMaxTurns(MAX_TURNS);
-		
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50); // TODO are 50ms enough?
 		
 		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
-		startingFieldChoice = new StartingFieldChoice(map.fields.size());
 		
 		sendInitialInput();
 	}
@@ -125,7 +123,7 @@ public class Referee extends AbstractReferee {
 		
 		if (league.pickCommandEnabled) {
 			// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
-			player.sendInputLine(startingFieldChoice.getStartingFieldsLeft(playerId) + " " + startingFieldChoice.getStartingFieldsLeft(playerId.getOpponent()));
+			player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
 		}
 		else {
 			// next line: two integers - ignore in this league
@@ -190,7 +188,7 @@ public class Referee extends AbstractReferee {
 								Type.RANDOM + " instead.");
 					}
 					pickedField = map.getFieldById(action.getTargetId());
-					if (pickedField.isEmpty()) {
+					if (!pickedField.isPresent()) {
 						throw new InvalidActionException("A field with the id " + action.getTargetId() + " does not exist.");
 					}
 					else if (pickedField.get().getOwner() != Owner.NEUTRAL) {
@@ -202,7 +200,7 @@ public class Referee extends AbstractReferee {
 						throw createInvalidActionTypeException(Type.DEPLOY, TurnType.DEPLOY_TROOPS);
 					}
 					pickedField = map.getFieldById(action.getTargetId());
-					if (pickedField.isEmpty()) {
+					if (!pickedField.isPresent()) {
 						throw new InvalidActionException("A field with the id " + action.getTargetId() + " does not exist.");
 					}
 					else if (pickedField.get().getOwner() != player) {
@@ -216,11 +214,11 @@ public class Referee extends AbstractReferee {
 					}
 					Optional<Field> sourceField = pickedField = map.getFieldById(action.getSourceId());
 					Optional<Field> targetField = pickedField = map.getFieldById(action.getTargetId());
-					if (sourceField.isEmpty()) {
+					if (!sourceField.isPresent()) {
 						throw new InvalidActionException("Cannot " + Type.MOVE + " from field " + action.getSourceId() + //
 								". A field with the id " + action.getSourceId() + " does not exist.");
 					}
-					if (targetField.isEmpty()) {
+					if (!targetField.isPresent()) {
 						throw new InvalidActionException("Cannot " + Type.MOVE + " to field " + action.getTargetId() + //
 								". A field with the id " + action.getTargetId() + " does not exist.");
 					}
@@ -278,7 +276,7 @@ public class Referee extends AbstractReferee {
 			case CHOOSE_STARTING_FIELDS:
 				boolean containsRandomAction = actions.stream().anyMatch(action -> action.getType() == Type.RANDOM);
 				long pickActions = actions.stream().filter(action -> action.getType() == Type.PICK).count();
-				int fieldsToPick = startingFieldChoice.getStartingFieldsLeft(player);
+				int fieldsToPick = map.getStartingFieldChoice().getStartingFieldsLeft(player);
 				if (containsRandomAction) {
 					if (pickActions > 0) {
 						throw new InvalidActionException("The actions " + Type.PICK + " and " + Type.RANDOM + " cannot be mixed.");

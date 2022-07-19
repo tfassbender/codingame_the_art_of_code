@@ -2,13 +2,20 @@ package com.codingame.game.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Collectors;
+
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import com.codingame.game.Action;
 import com.codingame.game.Action.Type;
+import com.codingame.game.build.RandomUtil;
 import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.util.TestUtils;
 
@@ -17,6 +24,11 @@ public class GameMapTest {
 	private static final float EPSILON = 1e-3f;
 	
 	private GameMap map;
+	
+	@BeforeAll
+	public static void initRandomUtil() throws NoSuchFieldException, IllegalAccessException {
+		RandomUtil.init(42);
+	}
 	
 	@BeforeEach
 	public void setup() {
@@ -466,6 +478,51 @@ public class GameMapTest {
 			
 			assertEquals(4 + 2, map.getFieldById(0).get().getTroops());
 			assertEquals(2 + 5, map.getFieldById(1).get().getTroops());
+		}
+	}
+	
+	@Nested
+	@DisplayName("Random Starting Position Tests")
+	public class RandomStartingPositionTests {
+		
+		@RepeatedTest(5)
+		public void test_choose_random_starting_positions__symmetric_field() {
+			RandomUtil.init(new Random().nextLong());
+			map = new StaticMapGenerator().createMapOneRegion();
+			
+			map.executeSimultaneously(new Action(Type.RANDOM).setOwner(Owner.PLAYER_1), new Action(Type.RANDOM).setOwner(Owner.PLAYER_2));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(fieldsPlayer1.size(), fieldsPlayer2.size());
+			
+			int halfMapSize = map.fields.size() / 2;
+			for (int i = 0; i < fieldsPlayer1.size(); i++) {
+				int id1 = fieldsPlayer1.get(i).id;
+				int id2;
+				if (id1 < halfMapSize) {
+					id2 = id1 + halfMapSize;
+				}
+				else {
+					id2 = id1 - halfMapSize;
+				}
+				
+				assertEquals(Owner.PLAYER_2, map.getFieldById(id2).get().getOwner(), "The fields should to be symmetric");
+			}
+		}
+		
+		@Test
+		public void test_choose_random_starting_positions() {
+			map.getFieldById(0).get().setOwner(Owner.PLAYER_1);
+			map.startingFieldChoice.decreaseStartingFieldsLeft(Owner.PLAYER_1);
+			
+			map.executeSimultaneously(new Action(Type.RANDOM).setOwner(Owner.PLAYER_1), new Action(Type.RANDOM).setOwner(Owner.PLAYER_2));
+			
+			long numFieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).count();
+			long numFieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).count();
+			
+			assertEquals(numFieldsPlayer1, numFieldsPlayer2);
 		}
 	}
 	

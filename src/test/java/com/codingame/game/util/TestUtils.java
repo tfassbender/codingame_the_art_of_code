@@ -3,7 +3,6 @@ package com.codingame.game.util;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 
 public class TestUtils {
 	
@@ -11,7 +10,7 @@ public class TestUtils {
 	
 	public static void setFieldPerReflection(Object instance, String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
 		Field field = instance.getClass().getDeclaredField(fieldName);
-		boolean accessible = field.canAccess(instance);
+		boolean accessible = field.isAccessible();
 		field.setAccessible(true);
 		field.set(instance, value);
 		field.setAccessible(accessible);
@@ -20,7 +19,7 @@ public class TestUtils {
 	@SuppressWarnings("unchecked")
 	public static <T> T getFieldPerReflection(Object instance, String fieldName) throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 		Field field = instance.getClass().getDeclaredField(fieldName);
-		boolean accessible = field.canAccess(instance);
+		boolean accessible = field.isAccessible();
 		field.setAccessible(true);
 		Object value = field.get(instance);
 		field.setAccessible(accessible);
@@ -38,7 +37,7 @@ public class TestUtils {
 	
 	public static void invokePrivateMethod(Object instance, String methodName, Class<?>[] parameterTypes, Object... parameters) throws Throwable {
 		Method method = instance.getClass().getDeclaredMethod(methodName, parameterTypes);
-		boolean accessible = method.canAccess(instance);
+		boolean accessible = method.isAccessible();
 		method.setAccessible(true);
 		try {
 			method.invoke(instance, parameters);
@@ -47,28 +46,5 @@ public class TestUtils {
 			throw e.getCause();
 		}
 		method.setAccessible(accessible);
-	}
-	
-	// see: https://stackoverflow.com/a/3301720/8178842
-	public static void setStaticFinalFieldPerReflection(Class<?> clazz, String fieldName, Object value) throws NoSuchFieldException, IllegalAccessException {
-		Field field = clazz.getDeclaredField(fieldName);
-		
-		// ignore that the field may be private
-		boolean isAccessible = field.canAccess(null);
-		field.setAccessible(true);
-		
-		// ignore that the field may be final
-		Field modifiersField = Field.class.getDeclaredField("modifiers");
-		modifiersField.setAccessible(true);
-		boolean isFinal = (modifiersField.getModifiers() & Modifier.FINAL) != 0;
-		modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-		modifiersField.setAccessible(false);
-		
-		field.set(null, value);
-		
-		field.setAccessible(isAccessible);
-		if (isFinal) {
-			field.setInt(field, field.getModifiers() & Modifier.FINAL);
-		}
 	}
 }

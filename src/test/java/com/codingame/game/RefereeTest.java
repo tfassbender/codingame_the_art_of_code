@@ -48,7 +48,7 @@ public class RefereeTest {
 			mockStartingFieldChoice();
 			setLeague(League.LEAGUE_3);
 			
-			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.PICK, 1), new Action(Type.PICK, 2));
+			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.PICK, 1));
 			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exceptions are thrown
@@ -129,10 +129,10 @@ public class RefereeTest {
 			List<Action> actions2 = Arrays.asList(new Action(Type.PICK, 1), new Action(Type.PICK, 2), new Action(Type.PICK, 3), new Action(Type.PICK, 4));
 			
 			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
-			assertTrue(invalidAction1.getMessage().contains("Not enough fields were picked. You need to pick 3 fields but you picked only 1."));
+			assertTrue(invalidAction1.getMessage().contains("Not enough fields were picked. You need to pick 2 fields but you picked only 1."));
 			
 			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
-			assertTrue(invalidAction2.getMessage().contains("To many fields were picked. You need to pick 3 fields but you picked 4."));
+			assertTrue(invalidAction2.getMessage().contains("To many fields were picked. You need to pick 2 fields but you picked 4."));
 		}
 		
 		@Test
@@ -416,8 +416,8 @@ public class RefereeTest {
 		}
 		
 		private void mockStartingFieldChoice() throws NoSuchFieldException, IllegalAccessException {
-			StartingFieldChoice startingFieldChoice = new StartingFieldChoice(0); // will set the number of starting fields to the minimum of 3
-			TestUtils.setFieldPerReflection(referee, "startingFieldChoice", startingFieldChoice);
+			StartingFieldChoice startingFieldChoice = new StartingFieldChoice(10); // will set the number of starting fields to the minimum of 2
+			map.setStartingFieldChoice(startingFieldChoice);
 		}
 		
 		private void validateActions(List<Action> actions, Owner player) throws Throwable {
@@ -445,6 +445,10 @@ public class RefereeTest {
 		@Override
 		public int calculateDeployableTroops(Owner player) {
 			return deployableTroops;
+		}
+		
+		public void setStartingFieldChoice(StartingFieldChoice startingFieldChoice) {
+			this.startingFieldChoice = startingFieldChoice;
 		}
 	}
 }
