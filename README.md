@@ -16,7 +16,7 @@ TODO add rules
 - Execute moves (in the map class)
   - [:heavy_check_mark: Tobias - execute_choose_starting_field, master]Choose starting field
   - [:heavy_check_mark: Tobias - execute_deploy_and_move, master] Deploy troop / Move troop
-  - [:hammer_and_wrench: Tobias - calculate_deployed_troops] calculate the number of troops to be deployed in a turn
+  - [:heavy_check_mark: Tobias - calculate_deployed_troops, master] calculate the number of troops to be deployed in a turn
 - Implement a simple view (for testing)
 - [:hammer_and_wrench: Dominik - simple_bot] Create a simple bot (for testing)
 - Create boss bots (not in this repo, so they remain private)
