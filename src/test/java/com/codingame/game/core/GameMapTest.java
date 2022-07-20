@@ -646,6 +646,27 @@ public class GameMapTest {
 		}
 	}
 	
+	@Nested
+	@DisplayName("Deployable Troops Tests")
+	public class DeployableTroopsTests {
+		
+		@Test
+		public void test_calculate_deployable_troops() throws Exception {
+			map = new StaticMapGenerator().createMapFiveRegions();
+			
+			Region conqueredRegion = map.regions.stream().filter(region -> region.bonusTroops == 5).findFirst().get();
+			conqueredRegion.fields.forEach(field -> field.setOwner(Owner.PLAYER_1)); // 5 fields with a bonus of 5 troops for the region (+1 troops for the number of fields)
+			map.setSparedDeployingTroops(3, Owner.PLAYER_1); // adds 3 troops that were not deployed in the last turn
+			TestUtils.setFieldPerReflection(map, "roundingLossPlayer1", 2.9f); // rounded down to 2
+			
+			int deployableTroops1 = map.calculateDeployableTroops(Owner.PLAYER_1, true);
+			int deployableTroops2 = map.calculateDeployableTroops(Owner.PLAYER_2, true);
+			
+			assertEquals(5 + 1 + 3 + 2 + GameMap.TROOPS_BONUS_FIRST_DEPLOYMENT + GameMap.TROOPS_PER_ROUND_DEFAULT, deployableTroops1);
+			assertEquals(GameMap.TROOPS_BONUS_FIRST_DEPLOYMENT + GameMap.TROOPS_PER_ROUND_DEFAULT, deployableTroops2);
+		}
+	}
+	
 	private void setFieldProperties(int id, Owner owner, int troops) throws NoSuchFieldException, IllegalAccessException {
 		TestUtils.setFieldPerReflection(map.getFieldById(id).get(), "owner", owner);
 		TestUtils.setFieldPerReflection(map.getFieldById(id).get(), "troops", troops);

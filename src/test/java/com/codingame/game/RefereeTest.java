@@ -430,7 +430,7 @@ public class RefereeTest {
 		}
 		
 		@Override
-		public int calculateDeployableTroops(Owner player) {
+		public int calculateDeployableTroops(Owner player, boolean firstTurn) {
 			return deployableTroops;
 		}
 		

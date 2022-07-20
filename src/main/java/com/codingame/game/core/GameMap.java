@@ -3,6 +3,7 @@ package com.codingame.game.core;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.codingame.game.Action;
 import com.codingame.game.Action.Type;
@@ -15,6 +16,10 @@ public class GameMap {
 	
 	public static final float TROOPS_KILLED_BY_ATTACK = 0.6f;
 	public static final float TROOPS_KILLED_BY_DEFENCE = 0.7f;
+	
+	public static final int TROOPS_PER_ROUND_DEFAULT = 5;
+	public static final int TROOPS_BONUS_FIRST_DEPLOYMENT = 10;
+	public static final float TROOPS_BONUS_FIELD_COUNT = 0.334f; // a bit more than 1/3 to prevent rounding issues because of the float precision
 	
 	public final Set<Field> fields;
 	public final Set<Pair<Field, Field>> connections;
@@ -29,6 +34,12 @@ public class GameMap {
 	 */
 	private float roundingLossPlayer1; // killed by player 2 - additional deployed troops for player 1
 	private float roundingLossPlayer2; // killed by player 1 - additional deployed troops for player 2
+	
+	/**
+	 * The number of troops that were not deployed in the previous turn.
+	 */
+	private int sparedDeploymentTroopsPlayer1;
+	private int sparedDeploymentTroopsPlayer2;
 	
 	public GameMap(Set<Field> fields, Set<Pair<Field, Field>> connections, Set<Region> regions) {
 		this.fields = fields;
@@ -256,11 +267,22 @@ public class GameMap {
 		startingFieldChoice.decreaseStartingFieldsLeft(owner);
 	}
 	
-	public int calculateDeployableTroops(Owner player) {
-		//TODO
+	public int calculateDeployableTroops(Owner player, boolean firstDeployment) {
+		List<Field> conqueredFields = fields.stream().filter(field -> field.getOwner() == player).collect(Collectors.toList());
+		List<Region> conqueredRegions = regions.stream().filter(region -> region.isConqueredBy(player)).collect(Collectors.toList());
 		
-		// TODO include roundingLossPlayer1 and roundingLossPlayer2 in calculation
-		return 0;
+		int fieldBonusTroops = (int) (conqueredFields.size() * TROOPS_BONUS_FIELD_COUNT);
+		int regionBonusTroops = conqueredRegions.stream().mapToInt(Region::getBonusTroops).sum();
+		int roundingLossBonusTroops = player == Owner.PLAYER_1 ? (int) Math.floor(roundingLossPlayer1) : (int) Math.floor(roundingLossPlayer2);
+		int firstDeploymentBonusTroops = firstDeployment ? TROOPS_BONUS_FIRST_DEPLOYMENT : 0;
+		int sparedDeploymentBonusTroops = player == Owner.PLAYER_1 ? sparedDeploymentTroopsPlayer1 : sparedDeploymentTroopsPlayer2;
+		
+		return TROOPS_PER_ROUND_DEFAULT + //
+				fieldBonusTroops + //
+				regionBonusTroops + //
+				roundingLossBonusTroops + //
+				firstDeploymentBonusTroops + //
+				sparedDeploymentBonusTroops;
 	}
 	
 	/**
@@ -269,6 +291,18 @@ public class GameMap {
 	public void resetRoundingLosses() {
 		roundingLossPlayer1 = 0;
 		roundingLossPlayer2 = 0;
+	}
+	
+	public void setSparedDeployingTroops(int troops, Owner player) {
+		if (player == Owner.PLAYER_1) {
+			sparedDeploymentTroopsPlayer1 = troops;
+		}
+		else if (player == Owner.PLAYER_2) {
+			sparedDeploymentTroopsPlayer2 = troops;
+		}
+		else {
+			throw new IllegalArgumentException("The parameter 'player' must be PLAYER_1 or PLAYER_2 but was " + player);
+		}
 	}
 	
 	public Optional<Field> getFieldById(int id) {

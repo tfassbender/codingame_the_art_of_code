@@ -34,6 +34,8 @@ public class Referee extends AbstractReferee {
 	
 	private TurnType turnType;
 	
+	private boolean firstDeployment = true; // TODO set to false after the first deployment phase
+	
 	@Override
 	public void init() {
 		RandomUtil.init(gameManager.getSeed());
@@ -114,7 +116,30 @@ public class Referee extends AbstractReferee {
 			executeActions(actions1, actions2);
 		}
 		
-		//TODO update turnType after actions are executed
+		// update the turn type and other turn values
+		
+		switch (turnType) {
+			case CHOOSE_STARTING_FIELDS:
+				if (map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1) > 0 || //
+						map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2) > 0) {
+					// not all starting fields are chosen yet
+					turnType = TurnType.CHOOSE_STARTING_FIELDS;
+				}
+				else {
+					// all starting fields are chosen -> deploy troops in the next turn
+					turnType = TurnType.DEPLOY_TROOPS;
+				}
+				break;
+			case DEPLOY_TROOPS:
+				firstDeployment = false;
+				turnType = TurnType.MOVE_TROOPS; // switch between deploying and moving troops
+				break;
+			case MOVE_TROOPS:
+				turnType = TurnType.DEPLOY_TROOPS; // switch between deploying and moving troops
+				break;
+			default:
+				throw new IllegalStateException("Unknown turn type: " + turnType);
+		}
 	}
 	
 	/**
@@ -131,11 +156,13 @@ public class Referee extends AbstractReferee {
 		player.sendInputLine(playersFields + " " + otherPlayersFields);
 		
 		// next line: two integers - the number of troops that each player can deploy (your input is always first; 0 in all turn types but DEPLOY_TROOPS)
-		player.sendInputLine(map.calculateDeployableTroops(playerId) + " " + map.calculateDeployableTroops(playerId.getOpponent()));
+		player.sendInputLine(map.calculateDeployableTroops(playerId, firstDeployment) + " " + //
+				map.calculateDeployableTroops(playerId.getOpponent(), firstDeployment));
 		
 		if (league.pickCommandEnabled) {
 			// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
-			player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
+			player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + //
+					map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
 		}
 		else {
 			// next line: two integers - ignore in this league
@@ -144,7 +171,8 @@ public class Referee extends AbstractReferee {
 		
 		// next line: the NUMBER_OF_FIELDS on the map
 		player.sendInputLine(Integer.toString(map.fields.size()));
-		// next NUMBER_OF_FIELDS lines: three integers - the FIELD_ID, the NUMBER_OF_TROOPS in this field, the OWNER of this field (1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral)
+		// next NUMBER_OF_FIELDS lines: three integers - the FIELD_ID, the NUMBER_OF_TROOPS in this field, the OWNER of this field 
+		//                              (1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral)
 		for (Field field : map.fields) {
 			int owner = 0;
 			if (field.getOwner() == playerId) {
@@ -294,7 +322,7 @@ public class Referee extends AbstractReferee {
 				break;
 			case DEPLOY_TROOPS:
 				int totalDeployedTroops = actions.stream().filter(action -> action.getType() == Type.DEPLOY).mapToInt(Action::getNumTroops).sum();
-				int allowedDeployments = map.calculateDeployableTroops(player);
+				int allowedDeployments = map.calculateDeployableTroops(player, firstDeployment);
 				if (totalDeployedTroops > allowedDeployments) {
 					throw new InvalidActionException("Cannot " + Type.DEPLOY + " " + totalDeployedTroops + //
 							" troops in total. You can only deploy " + allowedDeployments + " troops in this turn.");
@@ -322,6 +350,19 @@ public class Referee extends AbstractReferee {
 	}
 	
 	private void executeActions(List<Action> actions1, List<Action> actions2) {
+		if (turnType == TurnType.DEPLOY_TROOPS) {
+			// calculate how many troops are not deployed in this turn, so they can be deployed in the next turn
+			
+			int deployedTroops1 = actions1.stream().filter(action -> action.getType() == Type.DEPLOY).mapToInt(Action::getNumTroops).sum();
+			int deployedTroops2 = actions2.stream().filter(action -> action.getType() == Type.DEPLOY).mapToInt(Action::getNumTroops).sum();
+			
+			int sparedTroops1 = map.calculateDeployableTroops(Owner.PLAYER_1, firstDeployment) - deployedTroops1;
+			int sparedTroops2 = map.calculateDeployableTroops(Owner.PLAYER_2, firstDeployment) - deployedTroops2;
+			
+			map.setSparedDeployingTroops(sparedTroops1, Owner.PLAYER_1);
+			map.setSparedDeployingTroops(sparedTroops2, Owner.PLAYER_2);
+		}
+		
 		int minMoves = Math.min(actions1.size(), actions2.size());
 		
 		// every two moves of the players are executed simultaneously (in the order of the list) 

@@ -16,4 +16,12 @@ public class Region {
 		this.fields = fields;
 		this.bonusTroops = bonusTroops;
 	}
+	
+	public boolean isConqueredBy(Owner owner) {
+		return fields.stream().allMatch(field -> field.getOwner() == owner);
+	}
+	
+	public int getBonusTroops() {
+		return bonusTroops;
+	}
 }
