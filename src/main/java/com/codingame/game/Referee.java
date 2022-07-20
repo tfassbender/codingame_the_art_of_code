@@ -32,7 +32,7 @@ public class Referee extends AbstractReferee {
 	private League league;
 	private GameMap map;
 	
-	private TurnType turnType; //TODO this needs to be updated
+	private TurnType turnType;
 	
 	@Override
 	public void init() {
@@ -79,6 +79,14 @@ public class Referee extends AbstractReferee {
 					player.sendInputLine(Integer.toString(field.id));
 				}
 			}
+			
+			// next line: one string - either UPPER or LOWER - the part of the field (identified by id) in which you have the higher priority to choose a starting field
+			if (gameManager.getPlayers().indexOf(player) == 0) {
+				player.sendInputLine("LOWER");
+			}
+			else {
+				player.sendInputLine("UPPER");
+			}
 		}
 	}
 	
@@ -86,6 +94,8 @@ public class Referee extends AbstractReferee {
 	public void gameTurn(int turn) {
 		Player player1 = gameManager.getPlayer(0);
 		Player player2 = gameManager.getPlayer(1);
+		
+		//TODO in CHOOSE_STARTING_FIELD turns: only send input and receive output if the player needs to pick a starting field
 		
 		sendTurnInput(player1, Owner.PLAYER_1);
 		sendTurnInput(player2, Owner.PLAYER_2);
@@ -103,6 +113,8 @@ public class Referee extends AbstractReferee {
 		if (actions1 != null && actions2 != null) {
 			executeActions(actions1, actions2);
 		}
+		
+		//TODO update turnType after actions are executed
 	}
 	
 	/**
