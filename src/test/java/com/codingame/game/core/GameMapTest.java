@@ -486,11 +486,15 @@ public class GameMapTest {
 	public class RandomStartingPositionTests {
 		
 		@RepeatedTest(5)
-		public void test_choose_random_starting_positions__symmetric_field() {
+		public void test_choose_random_starting_fields__symmetric_field() {
 			RandomUtil.init(new Random().nextLong());
 			map = new StaticMapGenerator().createMapOneRegion();
 			
-			map.executeSimultaneously(new Action(Type.RANDOM).setOwner(Owner.PLAYER_1), new Action(Type.RANDOM).setOwner(Owner.PLAYER_2));
+			int fieldsToChoose = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			for (int i = 0; i < fieldsToChoose; i++) {
+				map.executeSimultaneously(new Action(Type.RANDOM).setOwner(Owner.PLAYER_1), new Action(Type.RANDOM).setOwner(Owner.PLAYER_2));
+			}
 			
 			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
 			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
@@ -513,7 +517,22 @@ public class GameMapTest {
 		}
 		
 		@Test
-		public void test_choose_random_starting_positions() {
+		public void test_choose_random_starting_fields_simultaneously() {
+			int startingFieldsToChoose = map.startingFieldChoice.getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			map.executeSimultaneously(new Action(Type.RANDOM).setOwner(Owner.PLAYER_1), new Action(Type.RANDOM).setOwner(Owner.PLAYER_2));
+			
+			long numFieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).count();
+			long numFieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).count();
+			
+			assertEquals(1, numFieldsPlayer1);
+			assertEquals(1, numFieldsPlayer2);
+			assertEquals(startingFieldsToChoose - 1, map.startingFieldChoice.getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose - 1, map.startingFieldChoice.getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_choose_random_starting_field_simultaneously__player_1_already_chose_a_field() {
 			map.getFieldById(0).get().setOwner(Owner.PLAYER_1);
 			map.startingFieldChoice.decreaseStartingFieldsLeft(Owner.PLAYER_1);
 			
@@ -522,7 +541,108 @@ public class GameMapTest {
 			long numFieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).count();
 			long numFieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).count();
 			
-			assertEquals(numFieldsPlayer1, numFieldsPlayer2);
+			assertEquals(2, numFieldsPlayer1);
+			assertEquals(1, numFieldsPlayer2);
+			assertEquals(map.startingFieldChoice.getStartingFieldsLeft(Owner.PLAYER_1), map.startingFieldChoice.getStartingFieldsLeft(Owner.PLAYER_2) - 1, //
+					"player 2 should still have 1 field more to choose than player 1");
+		}
+	}
+	
+	@Nested
+	@DisplayName("Pick Starting Position Tests")
+	public class PickStartingPositionTests {
+		
+		@Test
+		public void test_pick_starting_field__independent() {
+			int startingFieldsToChoose = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			map.executeSimultaneously(new Action(Type.PICK, 0).setOwner(Owner.PLAYER_1), new Action(Type.PICK, 1).setOwner(Owner.PLAYER_2));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(1, fieldsPlayer1.size());
+			assertEquals(1, fieldsPlayer2.size());
+			
+			assertEquals(0, fieldsPlayer1.stream().findFirst().get().id);
+			assertEquals(1, fieldsPlayer2.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_pick_starting_field__player_1_priorized_field() {
+			int startingFieldsToChoose = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			map.executeSimultaneously(new Action(Type.PICK, 0).setOwner(Owner.PLAYER_1), new Action(Type.PICK, 0).setOwner(Owner.PLAYER_2));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(1, fieldsPlayer1.size());
+			assertEquals(0, fieldsPlayer2.size());
+			
+			assertEquals(0, fieldsPlayer1.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_pick_starting_field__player_1_priorized_field__swapped_actions() {
+			int startingFieldsToChoose = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			// just like the test above, but the actions are swapped
+			map.executeSimultaneously(new Action(Type.PICK, 0).setOwner(Owner.PLAYER_2), new Action(Type.PICK, 0).setOwner(Owner.PLAYER_1));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(1, fieldsPlayer1.size());
+			assertEquals(0, fieldsPlayer2.size());
+			
+			assertEquals(0, fieldsPlayer1.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_pick_starting_field__player_2_priorized_field() {
+			int startingFieldsToChoose = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			map.executeSimultaneously(new Action(Type.PICK, 5).setOwner(Owner.PLAYER_1), new Action(Type.PICK, 5).setOwner(Owner.PLAYER_2));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(0, fieldsPlayer1.size());
+			assertEquals(1, fieldsPlayer2.size());
+			
+			assertEquals(5, fieldsPlayer2.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_pick_starting_field__player_2_priorized_field__swapped_actions() {
+			int startingFieldsToChoose = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			
+			// just like the test above, but the actions are swapped
+			map.executeSimultaneously(new Action(Type.PICK, 5).setOwner(Owner.PLAYER_2), new Action(Type.PICK, 5).setOwner(Owner.PLAYER_1));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(0, fieldsPlayer1.size());
+			assertEquals(1, fieldsPlayer2.size());
+			
+			assertEquals(5, fieldsPlayer2.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
 		}
 	}
 	

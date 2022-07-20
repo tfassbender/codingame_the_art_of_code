@@ -121,6 +121,20 @@ public class GameMap {
 				}
 			}
 		}
+		else if (action1.getType() == Type.PICK && action2.getType() == Type.PICK) {
+			if (action1.getTargetId() == action2.getTargetId()) {
+				executedSimultaneously = true;
+				
+				// both players chose the same starting field -> check which player has a higher priority on the field
+				if (action1.getTargetId() <= startingFieldChoice.player1PriorizedMaxFieldId && action1.getOwner() == Owner.PLAYER_1 || //
+						action1.getTargetId() > startingFieldChoice.player1PriorizedMaxFieldId && action1.getOwner() == Owner.PLAYER_2) {
+					executeIndependent(action1);
+				}
+				else {
+					executeIndependent(action2);
+				}
+			}
+		}
 		
 		// the actions are not dependent
 		if (!executedSimultaneously) {
@@ -137,14 +151,15 @@ public class GameMap {
 			case MOVE:
 				executeMovement(action);
 				break;
+			case PICK:
+				pickStartingField(action);
+				break;
 			case RANDOM:
-				chooseRandomStartingFields(action.getOwner());
+				chooseRandomStartingField(action);
 				break;
 			case WAIT:
 				// do nothing
 				break;
-			case PICK:
-				throw new IllegalArgumentException("Picking staring fields cannot be executed independent.");
 			default:
 				throw new IllegalStateException("Unknown action type: " + action.getType());
 		}
@@ -213,26 +228,32 @@ public class GameMap {
 		return getFieldById(action.getSourceId()).get().getOwner() != getFieldById(action.getTargetId()).get().getOwner();
 	}
 	
-	private void chooseRandomStartingFields(Owner owner) {
-		int startingFieldsLeft = startingFieldChoice.getStartingFieldsLeft(owner);
+	private void pickStartingField(Action action) {
+		Field field = getFieldById(action.getTargetId()).get();
+		field.setOwner(action.getOwner());
+		field.setTroops(1);
+		
+		startingFieldChoice.decreaseStartingFieldsLeft(action.getOwner());
+	}
+	
+	private void chooseRandomStartingField(Action action) {
+		Owner owner = action.getOwner();
 		List<Integer> startingFields = startingFieldChoice.getStartingFieldIdsForPlayer(owner);
 		int nextStartingFieldIndex = 0;
 		
-		for (int i = 0; i < startingFieldsLeft; i++) {
-			Field field;
-			
-			// choose the next free field from the list
-			do {
-				field = getFieldById(startingFields.get(nextStartingFieldIndex)).get();
-				nextStartingFieldIndex++;
-			} while (field.getOwner() != Owner.NEUTRAL);
-			
-			// deploy a starting troop on the chosen field
-			field.setOwner(owner);
-			field.setTroops(1);
-			
-			startingFieldChoice.decreaseStartingFieldsLeft(owner);
-		}
+		Field field;
+		
+		// choose the next free field from the list
+		do {
+			field = getFieldById(startingFields.get(nextStartingFieldIndex)).get();
+			nextStartingFieldIndex++;
+		} while (field.getOwner() != Owner.NEUTRAL);
+		
+		// deploy a starting troop on the chosen field
+		field.setOwner(owner);
+		field.setTroops(1);
+		
+		startingFieldChoice.decreaseStartingFieldsLeft(owner);
 	}
 	
 	public int calculateDeployableTroops(Owner player) {

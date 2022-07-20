@@ -194,6 +194,10 @@ public class Referee extends AbstractReferee {
 					else if (pickedField.get().getOwner() != Owner.NEUTRAL) {
 						throw new InvalidActionException("The field with the id " + action.getTargetId() + " was already picked.");
 					}
+					
+					if (actions.size() > 1) {
+						throw new InvalidActionException("You can only " + Type.PICK + " one field per turn.");
+					}
 					break;
 				case DEPLOY:
 					if (turnType != TurnType.DEPLOY_TROOPS) {
@@ -274,24 +278,7 @@ public class Referee extends AbstractReferee {
 		
 		switch (turnType) {
 			case CHOOSE_STARTING_FIELDS:
-				boolean containsRandomAction = actions.stream().anyMatch(action -> action.getType() == Type.RANDOM);
-				long pickActions = actions.stream().filter(action -> action.getType() == Type.PICK).count();
-				int fieldsToPick = map.getStartingFieldChoice().getStartingFieldsLeft(player);
-				if (containsRandomAction) {
-					if (pickActions > 0) {
-						throw new InvalidActionException("The actions " + Type.PICK + " and " + Type.RANDOM + " cannot be mixed.");
-					}
-				}
-				else {
-					if (pickActions < fieldsToPick) {
-						throw new InvalidActionException("Not enough fields were picked. You need to pick " + fieldsToPick + //
-								" fields but you picked only " + pickActions + ".");
-					}
-					if (pickActions > fieldsToPick) {
-						throw new InvalidActionException("To many fields were picked. You need to pick " + fieldsToPick + //
-								" fields but you picked " + pickActions + ".");
-					}
-				}
+				// do nothing here
 				break;
 			case DEPLOY_TROOPS:
 				int totalDeployedTroops = actions.stream().filter(action -> action.getType() == Type.DEPLOY).mapToInt(Action::getNumTroops).sum();

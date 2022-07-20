@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import com.codingame.game.Action.Type;
+import com.codingame.game.build.RandomUtil;
 import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
@@ -30,6 +31,8 @@ public class RefereeTest {
 	
 	@BeforeEach
 	public void setup() throws NoSuchFieldException, IllegalAccessException {
+		RandomUtil.init(42);
+		
 		referee = new Referee();
 		GameMap notMockedMap = new StaticMapGenerator().createMapFiveRegions();
 		map = new GameMapMock(notMockedMap.fields, notMockedMap.connections, notMockedMap.regions);
@@ -48,7 +51,7 @@ public class RefereeTest {
 			mockStartingFieldChoice();
 			setLeague(League.LEAGUE_3);
 			
-			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.PICK, 1));
+			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0));
 			validateActions(actions, Owner.PLAYER_1);
 			
 			// assert no exceptions are thrown
@@ -72,9 +75,9 @@ public class RefereeTest {
 			mockStartingFieldChoice();
 			setLeague(League.LEAGUE_3);
 			
-			List<Action> actions1 = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.DEPLOY, 0, 1));
-			List<Action> actions2 = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.MOVE, 0, 1, 1));
-			List<Action> actions3 = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.WAIT));
+			List<Action> actions1 = Arrays.asList(new Action(Type.DEPLOY, 0, 1));
+			List<Action> actions2 = Arrays.asList(new Action(Type.MOVE, 0, 1, 1));
+			List<Action> actions3 = Arrays.asList(new Action(Type.WAIT));
 			
 			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
 			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
@@ -120,31 +123,15 @@ public class RefereeTest {
 		}
 		
 		@Test
-		public void test_pick_starting_fields__wrong_number_of_fields_chosen() throws Exception {
+		public void test_pick_starting_fields__cannot_pick_multiple_fields() throws Exception {
 			setTurnType(TurnType.CHOOSE_STARTING_FIELDS);
 			mockStartingFieldChoice(); // uses 3 starting fields
 			setLeague(League.LEAGUE_3);
 			
-			List<Action> actions1 = Arrays.asList(new Action(Type.PICK, 0));
-			List<Action> actions2 = Arrays.asList(new Action(Type.PICK, 1), new Action(Type.PICK, 2), new Action(Type.PICK, 3), new Action(Type.PICK, 4));
+			List<Action> actions = Arrays.asList(new Action(Type.PICK, 1), new Action(Type.PICK, 2), new Action(Type.PICK, 3), new Action(Type.PICK, 4));
 			
-			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
-			assertTrue(invalidAction1.getMessage().contains("Not enough fields were picked. You need to pick 2 fields but you picked only 1."));
-			
-			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
-			assertTrue(invalidAction2.getMessage().contains("To many fields were picked. You need to pick 2 fields but you picked 4."));
-		}
-		
-		@Test
-		public void test_pick_starting_fields__random_and_pick_actions_cannot_be_mixed() throws Exception {
-			setTurnType(TurnType.CHOOSE_STARTING_FIELDS);
-			mockStartingFieldChoice();
-			setLeague(League.LEAGUE_3);
-			
-			List<Action> actions = Arrays.asList(new Action(Type.PICK, 0), new Action(Type.RANDOM));
-			
-			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
-			assertTrue(invalidAction.getMessage().contains("The actions PICK and RANDOM cannot be mixed."));
+			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
+			assertTrue(invalidAction1.getMessage().contains("You can only PICK one field per turn."));
 		}
 		
 		@Test
