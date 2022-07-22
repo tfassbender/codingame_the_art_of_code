@@ -1,6 +1,7 @@
 package com.codingame.game;
 
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class Referee extends AbstractReferee {
 	@Override
 	public void init() {
 		RandomUtil.init(gameManager.getSeed());
+
 		league = League.getByLevel(gameManager.getLeagueLevel());
 		gameManager.setFrameDuration(FRAME_DURATION);
 		gameManager.setMaxTurns(MAX_TURNS);
@@ -56,10 +58,6 @@ public class Referee extends AbstractReferee {
 		for (Player player : gameManager.getPlayers()) {
 			// first line: one integer - the NUMBER_OF_FIELDS in the map
 			player.sendInputLine(Integer.toString(map.fields.size()));
-			for (Field field : map.fields) {
-				// next NUMBER_OF_FIELDS lines: two integers - the ID of the field, the number of troops on the field
-				player.sendInputLine(field.id + " " + field.getTroops());
-			}
 			
 			// next line: one integer - the NUMBER_OF_CONNECTIONS between fields
 			player.sendInputLine(Integer.toString(map.connections.size()));
@@ -107,6 +105,12 @@ public class Referee extends AbstractReferee {
 		
 		List<Action> actions1 = getActions(player1, Owner.PLAYER_1);
 		List<Action> actions2 = getActions(player2, Owner.PLAYER_2);
+		
+		// the game might end here, because of wrong outputs
+		// in this case, we can not do anything more in this game turn
+		if (gameManager.isGameEnd()) {
+			return;
+		}
 		
 		// add the owner of the action to the action object
 		actions1.forEach(action -> action.setOwner(Owner.PLAYER_1));
@@ -194,6 +198,7 @@ public class Referee extends AbstractReferee {
 		}
 		catch (TimeoutException e) {
 			player.deactivate(String.format("$%d timeout!", player.getIndex()));
+			endGame();
 		}
 		catch (NumberFormatException e) {
 			player.deactivate("Wrong output!");
@@ -350,6 +355,9 @@ public class Referee extends AbstractReferee {
 	private void endGame() {
 		// TODO insert end game winner checks here
 		
+		if (gameManager.isGameEnd())
+			return;
+
 		gameManager.endGame();
 	}
 	
