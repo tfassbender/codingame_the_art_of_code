@@ -82,8 +82,9 @@ public class Action {
 			case DEPLOY:
 				return String.format("%s %d %d", type, targetId, numTroops);
 			case MOVE:
-				return String.format("%s %d %d %d", type, targetId, sourceId, numTroops);
+				return String.format("%s %d %d %d", type, sourceId, targetId, numTroops);
 			case RANDOM:
+			case WAIT:
 				return String.format("%s", type);
 			default:
 				throw new IllegalStateException("Invalid action state");

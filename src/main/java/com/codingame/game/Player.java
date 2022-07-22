@@ -21,7 +21,12 @@ public class Player extends AbstractMultiplayerPlayer {
 		
 		// Multiple moves are separated by a semicolon ";"
 		for (String actionStr : output.split(";")) {
-			actions.add(parseMove(actionStr.trim()));
+			if (actionStr.trim().length() != 0)
+				actions.add(parseMove(actionStr.trim()));
+		}
+		
+		if (actions.size() == 0) {
+			throw new InvalidActionException("No action was given");
 		}
 		
 		return actions;
@@ -39,8 +44,9 @@ public class Player extends AbstractMultiplayerPlayer {
 		
 		if (Action.Type.RANDOM.toString().equals(type)) {
 			return new Action(Action.Type.RANDOM);
-		}
-		else if (parts.length < 2) {
+		} else if (Action.Type.WAIT.toString().equals(type)) {
+			return new Action(Action.Type.WAIT);
+		} else if (parts.length < 2) {
 			throw new InvalidActionException("Missing field id in output: " + output);
 		}
 		
@@ -56,7 +62,7 @@ public class Player extends AbstractMultiplayerPlayer {
 		}
 		else if (Action.Type.MOVE.toString().equals(type)) {
 			if (parts.length < 3) {
-				throw new InvalidActionException("Missing source id for action: " + type);
+				throw new InvalidActionException("Missing target id for action: " + type);
 			}
 			
 			if (parts.length < 4) {
