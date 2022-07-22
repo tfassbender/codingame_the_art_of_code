@@ -202,7 +202,29 @@ public class RefereeTest {
 			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 1), new Action(Type.DEPLOY, 1, 3));
 			
 			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
-			assertTrue(invalidAction.getMessage().contains("Cannot DEPLOY 4 troops in total. You can only deploy 3 troops in this turn."));
+			assertTrue(invalidAction.getMessage().contains("Cannot DEPLOY 4 troops in total. You can only DEPLOY 3 troops in this turn."));
+		}
+		
+		@Test
+		public void test_deploy_troops__deployed_zero_troops() throws Exception {
+			setTurnType(TurnType.DEPLOY_TROOPS);
+			setFieldProperties(0, Owner.PLAYER_1, 1);
+			
+			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, 0));
+			
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
+			assertTrue(invalidAction.getMessage().contains("Cannot DEPLOY 0 troops. You have to DEPLOY at least 1 troop."));
+		}
+		
+		@Test
+		public void test_deploy_troops__deployed_negative_amount_of_troops() throws Exception {
+			setTurnType(TurnType.DEPLOY_TROOPS);
+			setFieldProperties(0, Owner.PLAYER_1, 1);
+			
+			List<Action> actions = Arrays.asList(new Action(Type.DEPLOY, 0, -1));
+			
+			InvalidActionException invalidAction = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
+			assertTrue(invalidAction.getMessage().contains("Cannot DEPLOY -1 troops. You have to DEPLOY at least 1 troop."));
 		}
 		
 		@Test

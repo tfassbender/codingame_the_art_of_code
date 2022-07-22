@@ -251,6 +251,10 @@ public class Referee extends AbstractReferee {
 						throw new InvalidActionException("Cannot " + Type.DEPLOY + " to field " + action.getTargetId() + //
 								". You don't controll this field.");
 					}
+					else if (action.getNumTroops() <= 0) {
+						throw new InvalidActionException("Cannot " + Type.DEPLOY + " " + action.getNumTroops() + " troops. You have to " + //
+								Type.DEPLOY + " at least 1 troop.");
+					}
 					break;
 				case MOVE:
 					if (turnType != TurnType.MOVE_TROOPS) {
@@ -325,7 +329,7 @@ public class Referee extends AbstractReferee {
 				int allowedDeployments = map.calculateDeployableTroops(player, firstDeployment);
 				if (totalDeployedTroops > allowedDeployments) {
 					throw new InvalidActionException("Cannot " + Type.DEPLOY + " " + totalDeployedTroops + //
-							" troops in total. You can only deploy " + allowedDeployments + " troops in this turn.");
+							" troops in total. You can only " + Type.DEPLOY + " " + allowedDeployments + " troops in this turn.");
 				}
 				break;
 			case MOVE_TROOPS:
