@@ -80,6 +80,8 @@ After all movements are executed the number of deployable troops is calculated a
   - [:heavy_check_mark: Tobias - calculate_deployed_troops, master] calculate the number of troops to be deployed in a turn
 - Implement a simple view (for testing)
   - [:heavy_check_mark: Tobias - master] Draw background, player icons and some info
+  - [:hammer_and_wrench: Dominik - simple_view] Draw regions and fields
+  - Animate actions
 - More adjustments for the Referee
   - Skip player in initial phase, if no fields can be chosen anymore
   - Detect game ending (no fields left or 0 troops per deploy phase + no troops left on the field)
