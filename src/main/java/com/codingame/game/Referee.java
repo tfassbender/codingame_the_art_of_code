@@ -50,7 +50,7 @@ public class Referee extends AbstractReferee {
 		gameManager.setFrameDuration(FRAME_DURATION);
 		gameManager.setMaxTurns(MAX_TURNS);
 		gameManager.setFirstTurnMaxTime(1000);
-		gameManager.setTurnMaxTime(50); // TODO are 50ms enough?
+		gameManager.setTurnMaxTime(50);
 		
 		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;

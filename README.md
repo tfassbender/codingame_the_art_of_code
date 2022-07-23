@@ -88,8 +88,8 @@ After all movements are executed the number of deployable troops is calculated a
   - Find out who won the game at the end
 - [:heavy_check_mark: Dominik - simple_bot, master] Create a simple bot (for testing)
 - Create boss bots (not in this repo, so they remain private)
-- Define the Rules (in this .md file)
-- Add the Rules to `config/statement_en.html`
+- [:heavy_check_mark: Tobias - master] Define the Rules (in this .md file)
+- [:heavy_check_mark: Tobias - master] Add the Rules to `config/statement_en.html`
 
 ## Class and package structure
 
