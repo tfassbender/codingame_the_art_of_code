@@ -1,7 +1,6 @@
 package com.codingame.game;
 
 import java.util.ArrayList;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,9 +15,11 @@ import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
 import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
+import com.codingame.game.view.View;
 import com.codingame.gameengine.core.AbstractPlayer.TimeoutException;
 import com.codingame.gameengine.core.AbstractReferee;
 import com.codingame.gameengine.core.MultiplayerGameManager;
+import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.google.inject.Inject;
 
 public class Referee extends AbstractReferee {
@@ -29,6 +30,10 @@ public class Referee extends AbstractReferee {
 	
 	@Inject
 	private MultiplayerGameManager<Player> gameManager;
+	@Inject
+	private GraphicEntityModule graphicEntityModule;
+	
+	private View view;
 	
 	private League league;
 	private GameMap map;
@@ -40,7 +45,7 @@ public class Referee extends AbstractReferee {
 	@Override
 	public void init() {
 		RandomUtil.init(gameManager.getSeed());
-
+		
 		league = League.getByLevel(gameManager.getLeagueLevel());
 		gameManager.setFrameDuration(FRAME_DURATION);
 		gameManager.setMaxTurns(MAX_TURNS);
@@ -49,6 +54,11 @@ public class Referee extends AbstractReferee {
 		
 		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
+		
+		view = new View(graphicEntityModule);
+		view.drawBackground();
+		view.drawPlayerInfos(gameManager.getPlayer(0), gameManager.getPlayer(1));
+		view.drawLegend(map.regions);
 		
 		sendInitialInput();
 	}
@@ -357,7 +367,7 @@ public class Referee extends AbstractReferee {
 		
 		if (gameManager.isGameEnd())
 			return;
-
+		
 		gameManager.endGame();
 	}
 	

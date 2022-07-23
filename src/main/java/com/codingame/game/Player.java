@@ -44,9 +44,11 @@ public class Player extends AbstractMultiplayerPlayer {
 		
 		if (Action.Type.RANDOM.toString().equals(type)) {
 			return new Action(Action.Type.RANDOM);
-		} else if (Action.Type.WAIT.toString().equals(type)) {
+		}
+		else if (Action.Type.WAIT.toString().equals(type)) {
 			return new Action(Action.Type.WAIT);
-		} else if (parts.length < 2) {
+		}
+		else if (parts.length < 2) {
 			throw new InvalidActionException("Missing field id in output: " + output);
 		}
 		
