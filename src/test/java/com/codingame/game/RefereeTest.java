@@ -42,8 +42,8 @@ public class RefereeTest {
 	}
 	
 	@Nested
-	@DisplayName("Action Validation Tests")
-	public class ActionValidationTests {
+	@DisplayName("Starting Field Action Validation Tests")
+	public class StartingFieldActionValidationTests {
 		
 		@Test
 		public void test_pick_starting_fields__valid() throws Throwable {
@@ -133,6 +133,11 @@ public class RefereeTest {
 			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions, Owner.PLAYER_1));
 			assertTrue(invalidAction1.getMessage().contains("You can only PICK one field per turn."));
 		}
+	}
+	
+	@Nested
+	@DisplayName("Deploy Troops Action Validation Tests")
+	public class DeployTroopsActionValidationTests {
 		
 		@Test
 		public void test_deploy_troops__deploy_and_wait__valid() throws Throwable {
@@ -239,6 +244,11 @@ public class RefereeTest {
 			
 			// assert no exception is thrown
 		}
+	}
+	
+	@Nested
+	@DisplayName("Movement Action Validation Tests")
+	public class MovementActionValidationTests {
 		
 		@Test
 		public void test_move_troops__move__valid() throws Throwable {
@@ -384,6 +394,11 @@ public class RefereeTest {
 			assertTrue(invalidAction.getMessage().contains("Cannot MOVE a total number of 3 (or more) troops from field 1. " + //
 					"The field only contains 2 troops."));
 		}
+	}
+	
+	@Nested
+	@DisplayName("Wait Action Validation Tests")
+	public class WaitActionValidationTests {
 		
 		@Test
 		public void test_wait__cannot_be_mixed_with_other_actions__deploy_turn() throws Throwable {
@@ -419,19 +434,19 @@ public class RefereeTest {
 			assertTrue(invalidAction2.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
 			assertTrue(invalidAction3.getMessage().contains(Type.WAIT + " commands cannot be mixed with other commands."));
 		}
-		
-		private void setTurnType(TurnType type) throws NoSuchFieldException, IllegalAccessException {
-			TestUtils.setFieldPerReflection(referee, "turnType", type);
-		}
-		
-		private void mockStartingFieldChoice() throws NoSuchFieldException, IllegalAccessException {
-			StartingFieldChoice startingFieldChoice = new StartingFieldChoice(10); // will set the number of starting fields to the minimum of 2
-			map.setStartingFieldChoice(startingFieldChoice);
-		}
-		
-		private void validateActions(List<Action> actions, Owner player) throws Throwable {
-			TestUtils.invokePrivateMethod(referee, "validateActions", new Class<?>[] {List.class, Owner.class}, actions, player);
-		}
+	}
+	
+	private void setTurnType(TurnType type) throws NoSuchFieldException, IllegalAccessException {
+		TestUtils.setFieldPerReflection(referee, "turnType", type);
+	}
+	
+	private void mockStartingFieldChoice() throws NoSuchFieldException, IllegalAccessException {
+		StartingFieldChoice startingFieldChoice = new StartingFieldChoice(10); // will set the number of starting fields to the minimum of 2
+		map.setStartingFieldChoice(startingFieldChoice);
+	}
+	
+	private void validateActions(List<Action> actions, Owner player) throws Throwable {
+		TestUtils.invokePrivateMethod(referee, "validateActions", new Class<?>[] {List.class, Owner.class}, actions, player);
 	}
 	
 	private void setLeague(League league) throws NoSuchFieldException, IllegalAccessException {
