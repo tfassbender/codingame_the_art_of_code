@@ -28,19 +28,10 @@ public class StaticMapGenerator {
 		List<Field> fields = new ArrayList<Field>();
 		Set<Region> regions = new HashSet<Region>();
 		List<Pair<Integer, Integer>> connectionIds = new ArrayList<>();
-		List<Integer> idsForOneTroop = createListFromIds(1, 17, 5, 21, 9, 25);
-		List<Integer> idsForThreeTroop = createListFromIds(4, 19, 12, 15);
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
-			int ntroops = 2;
-			
-			if (idsForOneTroop.contains(i))
-				ntroops = 1;
-			else if (idsForThreeTroop.contains(i))
-				ntroops = 3;
-			
-			fields.add(Field.createNeutralCamp(i, ntroops));
+			fields.add(new Field(i));
 		}
 		
 		// create all regions
@@ -98,19 +89,10 @@ public class StaticMapGenerator {
 		List<Field> fields = new ArrayList<Field>();
 		Set<Region> regions = new HashSet<Region>();
 		List<Pair<Integer, Integer>> connectionIds = new ArrayList<>();
-		List<Integer> idsForOneTroop = createListFromIds(1, 2, 6, 9, 13, 14);
-		List<Integer> idsForThreeTroop = createListFromIds(5, 15);
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
-			int ntroops = 2;
-			
-			if (idsForOneTroop.contains(i))
-				ntroops = 1;
-			else if (idsForThreeTroop.contains(i))
-				ntroops = 3;
-			
-			fields.add(Field.createNeutralCamp(i, ntroops));
+			fields.add(new Field(i));
 		}
 		
 		// create all regions
@@ -147,19 +129,10 @@ public class StaticMapGenerator {
 		List<Field> fields = new ArrayList<Field>();
 		Set<Region> regions = new HashSet<Region>();
 		List<Pair<Integer, Integer>> connectionIds = new ArrayList<>();
-		List<Integer> idsForOneTroop = createListFromIds(0, 4);
-		List<Integer> idsForThreeTroop = createListFromIds(3, 7);
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
-			int ntroops = 2;
-			
-			if (idsForOneTroop.contains(i))
-				ntroops = 1;
-			else if (idsForThreeTroop.contains(i))
-				ntroops = 3;
-			
-			fields.add(Field.createNeutralCamp(i, ntroops));
+			fields.add(new Field(i));
 		}
 		
 		// create all regions
@@ -171,16 +144,6 @@ public class StaticMapGenerator {
 		connectionIds.addAll(connectLine(1, 2, 5, 6));
 		
 		return new GameMap(new HashSet<>(fields), createConnections(connectionIds, fields), regions);
-	}
-	
-	private List<Integer> createListFromIds(int... ids) {
-		List<Integer> idsAsList = new ArrayList<Integer>();
-		
-		for (int id : ids) {
-			idsAsList.add(id);
-		}
-		
-		return idsAsList;
 	}
 	
 	private List<Pair<Integer, Integer>> connectCycle(int... ids) {

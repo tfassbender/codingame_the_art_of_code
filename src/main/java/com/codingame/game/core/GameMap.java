@@ -286,11 +286,7 @@ public class GameMap {
 	}
 	
 	public void deployNeutralTroops() {
-		fields.stream().filter(field -> field.getOwner() == Owner.NEUTRAL || field.getOwner() == null) //
-				.forEach(field -> {
-					field.setOwner(Owner.NEUTRAL);
-					field.setTroops(2);
-				});
+		fields.stream().filter(field -> field.getOwner() == Owner.NEUTRAL).forEach(field -> field.setTroops(2));
 	}
 	
 	/**

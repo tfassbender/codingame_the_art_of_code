@@ -11,15 +11,7 @@ public class Field {
 	
 	public Field(int id) {
 		this.id = id;
-	}
-	
-	public static Field createNeutralCamp(int id, int troops) {
-		Field field = new Field(id);
-		
-		field.setOwner(Owner.NEUTRAL);
-		field.setTroops(troops);
-		
-		return field;
+		owner = Owner.NEUTRAL;
 	}
 	
 	public int getTroops() {
