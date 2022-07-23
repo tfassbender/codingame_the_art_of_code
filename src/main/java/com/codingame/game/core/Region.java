@@ -9,7 +9,9 @@ public class Region {
 	
 	public final Set<Field> fields;
 	public final int bonusTroops;
-	public final String id;
+	public final int id;
+	
+	private static int REGION_ID_CNT = 0;
 	
 	// TODO maybe add a color or something to identify the region on the map
 	
@@ -17,7 +19,7 @@ public class Region {
 		this.fields = fields;
 		this.bonusTroops = bonusTroops;
 		
-		this.id = "R1"; // TODO find better names
+		this.id = REGION_ID_CNT++; // TODO find better names
 	}
 	
 	public boolean isConqueredBy(Owner owner) {
@@ -29,6 +31,6 @@ public class Region {
 	}
 	
 	public String getId() {
-		return id;
+		return "R"+id;
 	}
 }

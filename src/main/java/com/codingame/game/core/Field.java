@@ -37,4 +37,18 @@ public class Field {
 	protected void setOwner(Owner owner) {
 		this.owner = owner;
 	}
+
+	@Override
+	public int hashCode() {
+		return 13*id;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (!(o instanceof Field)) {
+			return false;
+		}
+		
+		return id == ((Field)o).id;
+	}
 }

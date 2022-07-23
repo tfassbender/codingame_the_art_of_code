@@ -28,18 +28,17 @@ public class StaticMapGenerator {
 		List<Field> fields = new ArrayList<Field>();
 		Set<Region> regions = new HashSet<Region>();
 		List<Pair<Integer, Integer>> connectionIds = new ArrayList<>();
-		List<Integer> idsForOneTroop = createListFromIds(1, 17, 5, 21, 9, 25);
-		List<Integer> idsForThreeTroop = createListFromIds(4, 19, 12, 15);
+		List<Integer> regionCIds = new ArrayList<>();
+		regionCIds.add(10);
+		regionCIds.add(11);
+		regionCIds.add(12);
+		regionCIds.add(23);
+		regionCIds.add(24);
+		regionCIds.add(25);
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
 			int ntroops = 2;
-			
-			if (idsForOneTroop.contains(i))
-				ntroops = 1;
-			else if (idsForThreeTroop.contains(i))
-				ntroops = 3;
-			
 			fields.add(Field.createNeutralCamp(i, ntroops));
 		}
 		
@@ -49,9 +48,9 @@ public class StaticMapGenerator {
 		int bonusTroupsBE = 3;
 		regions.add(createRegion(0, 6, fields, bonusTroupsAD)); // A
 		regions.add(createRegion(6, 10, fields, bonusTroupsBE)); // B
-		regions.add(createRegion(10, 15, fields, bonusTroupsC)); // C
-		regions.add(createRegion(16, 22, fields, bonusTroupsAD)); // D
-		regions.add(createRegion(22, 26, fields, bonusTroupsBE)); // E
+		regions.add(createRegion(regionCIds, fields, bonusTroupsC)); // C
+		regions.add(createRegion(13, 19, fields, bonusTroupsAD)); // D
+		regions.add(createRegion(19, 23, fields, bonusTroupsBE)); // E
 		
 		// create all connections
 		
@@ -64,27 +63,27 @@ public class StaticMapGenerator {
 		connectionIds.add(Pair.of(7, 8));
 		
 		// connections in region C
-		connectionIds.addAll(connectCycle(10, 13, 14, 15, 12, 11));
-		connectionIds.add(Pair.of(11, 14));
+		connectionIds.addAll(connectCycle(10, 23, 24, 25, 12, 11));
+		connectionIds.add(Pair.of(11, 24));
 		
 		// connections in region D
-		connectionIds.addAll(connectCycle(16, 17, 18, 19, 20, 21));
-		connectionIds.addAll(connectCycle(17, 20, 19));
+		connectionIds.addAll(connectCycle(13, 14, 15, 17, 18, 16));
+		connectionIds.addAll(connectCycle(14, 17, 16));
 		
 		// connections in region E
-		connectionIds.addAll(connectCycle(22, 24, 25, 23));
-		connectionIds.add(Pair.of(23, 24));
+		connectionIds.addAll(connectCycle(19, 21, 22, 20));
+		connectionIds.add(Pair.of(20, 21));
 		
 		// connections between regions
-		connectionIds.add(Pair.of(0, 18));
-		connectionIds.add(Pair.of(4, 11));
-		connectionIds.add(Pair.of(14, 19));
-		connectionIds.add(Pair.of(2, 10));
-		connectionIds.add(Pair.of(5, 6));
-		connectionIds.add(Pair.of(8, 12));
-		connectionIds.add(Pair.of(13, 16));
-		connectionIds.add(Pair.of(15, 23));
-		connectionIds.add(Pair.of(21, 22));
+		connectionIds.add(Pair.of(0, 13)); // A <-> D
+		connectionIds.add(Pair.of(4, 11)); // A <-> C
+		connectionIds.add(Pair.of(24, 17)); // D <-> C
+		connectionIds.add(Pair.of(2, 10)); // A <-> C
+		connectionIds.add(Pair.of(5, 6)); // A <-> B
+		connectionIds.add(Pair.of(8, 12)); // B <-> C
+		connectionIds.add(Pair.of(15, 23)); // D <-> C
+		connectionIds.add(Pair.of(21, 25)); // E <-> C
+		connectionIds.add(Pair.of(18, 19)); // D <-> E
 		
 		return new GameMap(new HashSet<>(fields), createConnections(connectionIds, fields), regions);
 	}
@@ -98,18 +97,10 @@ public class StaticMapGenerator {
 		List<Field> fields = new ArrayList<Field>();
 		Set<Region> regions = new HashSet<Region>();
 		List<Pair<Integer, Integer>> connectionIds = new ArrayList<>();
-		List<Integer> idsForOneTroop = createListFromIds(1, 2, 6, 9, 13, 14);
-		List<Integer> idsForThreeTroop = createListFromIds(5, 15);
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
 			int ntroops = 2;
-			
-			if (idsForOneTroop.contains(i))
-				ntroops = 1;
-			else if (idsForThreeTroop.contains(i))
-				ntroops = 3;
-			
 			fields.add(Field.createNeutralCamp(i, ntroops));
 		}
 		
@@ -126,14 +117,14 @@ public class StaticMapGenerator {
 		connectionIds.addAll(connectLine(2, 5, 6));
 		
 		// connections in region B
-		connectionIds.addAll(connectCycle(9, 10, 13, 17, 16, 14, 11));
+		connectionIds.addAll(connectCycle(10, 9, 11, 16, 17, 15, 13));
 		connectionIds.addAll(connectLine(11, 12, 13));
-		connectionIds.addAll(connectLine(14, 15, 13));
+		connectionIds.addAll(connectLine(11, 14, 15));
 		
 		// connections between regions
-		connectionIds.add(Pair.of(1, 9));
-		connectionIds.add(Pair.of(8, 16));
-		connectionIds.add(Pair.of(2, 13));
+		connectionIds.add(Pair.of(1, 10));
+		connectionIds.add(Pair.of(8, 17));
+		connectionIds.add(Pair.of(2, 11));
 		
 		return new GameMap(new HashSet<>(fields), createConnections(connectionIds, fields), regions);
 	}
@@ -147,18 +138,10 @@ public class StaticMapGenerator {
 		List<Field> fields = new ArrayList<Field>();
 		Set<Region> regions = new HashSet<Region>();
 		List<Pair<Integer, Integer>> connectionIds = new ArrayList<>();
-		List<Integer> idsForOneTroop = createListFromIds(0, 4);
-		List<Integer> idsForThreeTroop = createListFromIds(3, 7);
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
 			int ntroops = 2;
-			
-			if (idsForOneTroop.contains(i))
-				ntroops = 1;
-			else if (idsForThreeTroop.contains(i))
-				ntroops = 3;
-			
 			fields.add(Field.createNeutralCamp(i, ntroops));
 		}
 		
@@ -167,20 +150,10 @@ public class StaticMapGenerator {
 		regions.add(createRegion(0, nFields, fields, bonusTroups)); // A
 		
 		// create all connections
-		connectionIds.addAll(connectCycle(0, 4, 6, 7, 3, 1));
-		connectionIds.addAll(connectLine(1, 2, 5, 6));
+		connectionIds.addAll(connectCycle(0, 4, 5, 7, 3, 1));
+		connectionIds.addAll(connectLine(1, 2, 6, 5));
 		
 		return new GameMap(new HashSet<>(fields), createConnections(connectionIds, fields), regions);
-	}
-	
-	private List<Integer> createListFromIds(int... ids) {
-		List<Integer> idsAsList = new ArrayList<Integer>();
-		
-		for (int id : ids) {
-			idsAsList.add(id);
-		}
-		
-		return idsAsList;
 	}
 	
 	private List<Pair<Integer, Integer>> connectCycle(int... ids) {
@@ -203,6 +176,10 @@ public class StaticMapGenerator {
 	
 	private Region createRegion(int minId, int maxId, Collection<Field> fields, int bonusTroups) {
 		return new Region(fields.stream().filter(f -> f.id >= minId && f.id < maxId).collect(Collectors.toSet()), bonusTroups);
+	}
+	
+	private Region createRegion(List<Integer> selection, Collection<Field> fields, int bonusTroups) {
+		return new Region(fields.stream().filter(f -> selection.contains(f.id)).collect(Collectors.toSet()), bonusTroups);
 	}
 	
 	private Set<Pair<Field, Field>> createConnections(Collection<Pair<Integer, Integer>> connectIds, List<Field> fields) {

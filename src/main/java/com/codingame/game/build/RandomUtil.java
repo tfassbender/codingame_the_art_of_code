@@ -20,10 +20,18 @@ public class RandomUtil {
 		instance = new RandomUtil(seed);
 	}
 	
+	public static synchronized void init(Random random) {
+		instance = new RandomUtil(random);
+	}
+	
 	private Random random;
 	
 	private RandomUtil(long seed) {
 		random = new Random(seed);
+	}
+	
+	private RandomUtil(Random random) {
+		this.random = random;
 	}
 	
 	public int nextInt(int bound) {

@@ -94,9 +94,9 @@ public class Vector2D implements Cloneable {
 	 */
 	public double length(int norm) {
 		if (norm == Integer.MAX_VALUE) {
-			return Math.max(x, y);
+			return Math.max(Math.abs(x), Math.abs(y));
 		}
-		return Math.pow(Math.pow(x, norm) + Math.pow(y, norm), 1.0/norm);
+		return Math.pow(Math.pow(Math.abs(x), norm) + Math.pow(Math.abs(y), norm), 1.0/norm);
 	}
 	
 	/**
