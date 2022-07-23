@@ -140,7 +140,12 @@ public class Referee extends AbstractReferee {
 					turnType = TurnType.CHOOSE_STARTING_FIELDS;
 				}
 				else {
-					// all starting fields are chosen -> deploy troops in the next turn
+					// all starting fields are chosen 
+					
+					// all other fields are occupied by 2 neutral troops per field
+					map.deployNeutralTroops();
+					
+					// deploy troops in the next turn
 					turnType = TurnType.DEPLOY_TROOPS;
 				}
 				break;
@@ -173,15 +178,9 @@ public class Referee extends AbstractReferee {
 		player.sendInputLine(map.calculateDeployableTroops(playerId, firstDeployment) + " " + //
 				map.calculateDeployableTroops(playerId.getOpponent(), firstDeployment));
 		
-		if (league.pickCommandEnabled) {
-			// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
-			player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + //
-					map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
-		}
-		else {
-			// next line: two integers - ignore in this league
-			player.sendInputLine("0 0");
-		}
+		// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
+		player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + //
+				map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
 		
 		// next line: the NUMBER_OF_FIELDS on the map
 		player.sendInputLine(Integer.toString(map.fields.size()));

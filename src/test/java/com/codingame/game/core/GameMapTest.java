@@ -1,6 +1,7 @@
 package com.codingame.game.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 import java.util.Random;
@@ -238,7 +239,7 @@ public class GameMapTest {
 			assertEquals(Owner.PLAYER_2, field1.getOwner());
 			assertEquals(9 - 4 - 3, field0.getTroops(), "all 4 attackers are killed in the first attack (7 * 0.6); 3 troops are killed in the second attack (4 * 0.6)");
 			assertEquals(8 - 3 - 4, field1.getTroops(), "3 troops are killed in the first attack (4 * 0.6); all 4 attacking troops are killed in the second attack (5 * 0.7)");
-
+			
 			assertEquals(0.6f, getRoundingLoss(Owner.PLAYER_1), EPSILON, "kills are more than present in the first fight and 2.4 (4 * 0.6) in the second fight; rounding loss is 0.6");
 			assertEquals(1.1f, getRoundingLoss(Owner.PLAYER_2), EPSILON, "kills are 2.4 (4 * 0.6) in the first fight and 3.5 (5 * 0.7) in the second fight; rounding loss is 1.1 (0.6 + 0.5)");
 		}
@@ -478,6 +479,21 @@ public class GameMapTest {
 			
 			assertEquals(4 + 2, map.getFieldById(0).get().getTroops());
 			assertEquals(2 + 5, map.getFieldById(1).get().getTroops());
+		}
+		
+		@Test
+		public void test_deploy__not_chosen_fields_are_filled_with_two_neutral_troops() throws Exception {
+			setFieldProperties(0, Owner.PLAYER_1, 2);
+			setFieldProperties(1, Owner.PLAYER_1, 2);
+			setFieldProperties(2, Owner.PLAYER_2, 2);
+			setFieldProperties(3, Owner.PLAYER_2, 2);
+			
+			map.deployNeutralTroops();
+			
+			for (Field field : map.fields) {
+				assertEquals(2, field.getTroops());
+				assertNotNull(field.getOwner());
+			}
 		}
 	}
 	

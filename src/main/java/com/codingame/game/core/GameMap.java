@@ -285,6 +285,14 @@ public class GameMap {
 				sparedDeploymentBonusTroops;
 	}
 	
+	public void deployNeutralTroops() {
+		fields.stream().filter(field -> field.getOwner() == Owner.NEUTRAL || field.getOwner() == null) //
+				.forEach(field -> {
+					field.setOwner(Owner.NEUTRAL);
+					field.setTroops(2);
+				});
+	}
+	
 	/**
 	 * Rounding losses are reset after the deployment, so they are not taken the the next turn.
 	 */
