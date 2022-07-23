@@ -18,6 +18,7 @@ TODO add rules
   - [:heavy_check_mark: Tobias - execute_deploy_and_move, master] Deploy troop / Move troop
   - [:heavy_check_mark: Tobias - calculate_deployed_troops, master] calculate the number of troops to be deployed in a turn
 - Implement a simple view (for testing)
+  - [:hammer_and_wrench: Tobias - master] Draw background and player icons
 - More adjustments for the Referee
   - Skip player in initial phase, if no fields can be chosen anymore
   - Detect game ending (no fields left or 0 troops per deploy phase + no troops left on the field)
