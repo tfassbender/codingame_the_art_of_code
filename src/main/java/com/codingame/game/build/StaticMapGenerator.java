@@ -38,8 +38,7 @@ public class StaticMapGenerator {
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
-			int ntroops = 2;
-			fields.add(Field.createNeutralCamp(i, ntroops));
+			fields.add(new Field(i));
 		}
 		
 		// create all regions
@@ -100,8 +99,7 @@ public class StaticMapGenerator {
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
-			int ntroops = 2;
-			fields.add(Field.createNeutralCamp(i, ntroops));
+			fields.add(new Field(i));
 		}
 		
 		// create all regions
@@ -141,8 +139,7 @@ public class StaticMapGenerator {
 		
 		// create all fields
 		for (int i = 0; i < nFields; i++) {
-			int ntroops = 2;
-			fields.add(Field.createNeutralCamp(i, ntroops));
+			fields.add(new Field(i));
 		}
 		
 		// create all regions

@@ -5,21 +5,16 @@ package com.codingame.game.core;
  */
 public class Field {
 	
+	public static final int NEUTRAL_CAMP_SIZE = 2;
+	
 	public final int id;
 	private int troops;
 	private Owner owner;
 	
 	public Field(int id) {
 		this.id = id;
-	}
-	
-	public static Field createNeutralCamp(int id, int troops) {
-		Field field = new Field(id);
-		
-		field.setOwner(Owner.NEUTRAL);
-		field.setTroops(troops);
-		
-		return field;
+		owner = Owner.NEUTRAL;
+		troops = NEUTRAL_CAMP_SIZE;
 	}
 	
 	public int getTroops() {

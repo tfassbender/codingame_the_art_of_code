@@ -106,7 +106,7 @@ public class View {
 				.setFontWeight(FontWeight.BOLD).setFontSize(30) //
 				.setX(230).setY(155);
 
-		statisticsPlayer1 = graphicEntityModule.createText("9\n42\n501").setFontFamily("courier")
+		statisticsPlayer1 = graphicEntityModule.createText("0\n0\n0").setFontFamily("courier")
 				.setFontWeight(FontWeight.BOLD).setFontSize(30) //
 				.setX(360).setY(155);
 
@@ -132,7 +132,7 @@ public class View {
 				.setFontWeight(FontWeight.BOLD).setFontSize(30) //
 				.setX(230).setY(425);
 
-		statisticsPlayer2 = graphicEntityModule.createText("9\n42\n501").setFontFamily("courier")
+		statisticsPlayer2 = graphicEntityModule.createText("0\n0\n0").setFontFamily("courier")
 				.setFontWeight(FontWeight.BOLD).setFontSize(30) //
 				.setX(360).setY(425);
 	}

@@ -285,6 +285,10 @@ public class GameMap {
 				sparedDeploymentBonusTroops;
 	}
 	
+	public void deployNeutralTroops() {
+		fields.stream().filter(field -> field.getOwner() == Owner.NEUTRAL).forEach(field -> field.setTroops(2));
+	}
+	
 	/**
 	 * Rounding losses are reset after the deployment, so they are not taken the the next turn.
 	 */
@@ -312,6 +316,14 @@ public class GameMap {
 	public boolean isFieldsConnected(int sourceId, int targetId) {
 		return connections.stream().anyMatch(pair -> pair.getKey().id == sourceId && pair.getValue().id == targetId || //
 				pair.getKey().id == targetId && pair.getValue().id == sourceId);
+	}
+	
+	public int getNumTroopsControlledByPlayer(Owner player) {
+		return fields.stream().filter(field -> field.getOwner() == player).mapToInt(Field::getTroops).sum();
+	}
+	
+	public int getNumFieldsControlledByPlayer(Owner player) {
+		return (int) fields.stream().filter(field -> field.getOwner() == player).count();
 	}
 	
 	public StartingFieldChoice getStartingFieldChoice() {

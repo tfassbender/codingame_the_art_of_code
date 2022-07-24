@@ -1,6 +1,7 @@
 package com.codingame.game;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +19,9 @@ import com.codingame.game.util.Pair;
 import com.codingame.game.view.View;
 import com.codingame.gameengine.core.AbstractPlayer.TimeoutException;
 import com.codingame.gameengine.core.AbstractReferee;
+import com.codingame.gameengine.core.GameManager;
 import com.codingame.gameengine.core.MultiplayerGameManager;
+import com.codingame.gameengine.module.endscreen.EndScreenModule;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.google.inject.Inject;
 
@@ -32,6 +35,8 @@ public class Referee extends AbstractReferee {
 	private MultiplayerGameManager<Player> gameManager;
 	@Inject
 	private GraphicEntityModule graphicEntityModule;
+	@Inject
+	private EndScreenModule endScreenModule;
 	
 	private View view;
 	
@@ -40,7 +45,7 @@ public class Referee extends AbstractReferee {
 	
 	private TurnType turnType;
 	
-	private boolean firstDeployment = true; // TODO set to false after the first deployment phase
+	private boolean firstDeployment = true;
 	
 	@Override
 	public void init() {
@@ -50,7 +55,7 @@ public class Referee extends AbstractReferee {
 		gameManager.setFrameDuration(FRAME_DURATION);
 		gameManager.setMaxTurns(MAX_TURNS);
 		gameManager.setFirstTurnMaxTime(1000);
-		gameManager.setTurnMaxTime(50); // TODO are 50ms enough?
+		gameManager.setTurnMaxTime(50);
 		
 		//		map = MapGenerator.generateMap();
 		map = new StaticMapGenerator().createMapFiveRegions();
@@ -109,16 +114,42 @@ public class Referee extends AbstractReferee {
 		Player player1 = gameManager.getPlayer(0);
 		Player player2 = gameManager.getPlayer(1);
 		
-		//TODO in CHOOSE_STARTING_FIELD turns: only send input and receive output if the player needs to pick a starting field
+		List<Action> actions1 = Collections.emptyList();
+		List<Action> actions2 = Collections.emptyList();
 		
-		sendTurnInput(player1, Owner.PLAYER_1);
-		sendTurnInput(player2, Owner.PLAYER_2);
-		
-		player1.execute();
-		player2.execute();
-		
-		List<Action> actions1 = getActions(player1, Owner.PLAYER_1);
-		List<Action> actions2 = getActions(player2, Owner.PLAYER_2);
+		if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
+			// the player only take a turn if there are starting fields left to choose
+			boolean player1Active = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1) > 0;
+			boolean player2Active = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2) > 0;
+			
+			
+			if (player1Active)
+				sendTurnInput(player1, Owner.PLAYER_1);
+			
+			if (player2Active)
+				sendTurnInput(player2, Owner.PLAYER_2);
+			
+			if (player1Active) {
+				player1.execute();
+				actions1 = getActions(player1, Owner.PLAYER_1);
+			}
+			
+			if (player2Active) {
+				player2.execute();
+				actions2 = getActions(player2, Owner.PLAYER_2);
+			}
+		}
+		else {
+			// the turn type is DEPLOY_TROOPS or MOVE_TROOPS, so both players take a turn
+			sendTurnInput(player1, Owner.PLAYER_1);
+			sendTurnInput(player2, Owner.PLAYER_2);
+			
+			player1.execute();
+			player2.execute();
+			
+			actions1 = getActions(player1, Owner.PLAYER_1);
+			actions2 = getActions(player2, Owner.PLAYER_2);
+		}
 		
 		// the game might end here, because of wrong outputs
 		// in this case, we can not do anything more in this game turn
@@ -144,7 +175,12 @@ public class Referee extends AbstractReferee {
 					turnType = TurnType.CHOOSE_STARTING_FIELDS;
 				}
 				else {
-					// all starting fields are chosen -> deploy troops in the next turn
+					// all starting fields are chosen 
+					
+					// all other fields are occupied by 2 neutral troops per field
+					map.deployNeutralTroops();
+					
+					// deploy troops in the next turn
 					turnType = TurnType.DEPLOY_TROOPS;
 				}
 				break;
@@ -153,13 +189,32 @@ public class Referee extends AbstractReferee {
 				turnType = TurnType.MOVE_TROOPS; // switch between deploying and moving troops
 				break;
 			case MOVE_TROOPS:
+				map.resetRoundingLosses();
 				turnType = TurnType.DEPLOY_TROOPS; // switch between deploying and moving troops
 				break;
 			default:
 				throw new IllegalStateException("Unknown turn type: " + turnType);
 		}
 		
+		// update the scores and statistics of each player
+		int fieldsPlayer1 = map.getNumFieldsControlledByPlayer(Owner.PLAYER_1);
+		int fieldsPlayer2 = map.getNumFieldsControlledByPlayer(Owner.PLAYER_2);
+		int troopsPlayer1 = map.getNumTroopsControlledByPlayer(Owner.PLAYER_1);
+		int troopsPlayer2 = map.getNumTroopsControlledByPlayer(Owner.PLAYER_2);
+		int deployableTroopsPlayer1 = map.calculateDeployableTroops(Owner.PLAYER_1, firstDeployment);
+		int deployableTroopsPlayer2 = map.calculateDeployableTroops(Owner.PLAYER_2, firstDeployment);
+
+		view.updatePlayerStats(Owner.PLAYER_1, fieldsPlayer1, troopsPlayer1, deployableTroopsPlayer1);
+		view.updatePlayerStats(Owner.PLAYER_2, fieldsPlayer2, troopsPlayer2, deployableTroopsPlayer2);
 		view.updateFields(map.fields);
+		
+		player1.setScore(fieldsPlayer1);
+		player2.setScore(fieldsPlayer2);
+		
+		// check whether the game has ended
+		if (fieldsPlayer1 == 0 || fieldsPlayer2 == 0) {
+			gameManager.endGame();
+		}
 	}
 	
 	/**
@@ -179,15 +234,9 @@ public class Referee extends AbstractReferee {
 		player.sendInputLine(map.calculateDeployableTroops(playerId, firstDeployment) + " " + //
 				map.calculateDeployableTroops(playerId.getOpponent(), firstDeployment));
 		
-		if (league.pickCommandEnabled) {
-			// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
-			player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + //
-					map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
-		}
-		else {
-			// next line: two integers - ignore in this league
-			player.sendInputLine("0 0");
-		}
+		// next line: two integers - the number of fields for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS)
+		player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + //
+				map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
 		
 		// next line: the NUMBER_OF_FIELDS on the map
 		player.sendInputLine(Integer.toString(map.fields.size()));
@@ -214,21 +263,21 @@ public class Referee extends AbstractReferee {
 		}
 		catch (TimeoutException e) {
 			player.deactivate(String.format("$%d timeout!", player.getIndex()));
+			player.setScore(-1);
 			endGame();
 		}
 		catch (NumberFormatException e) {
-			player.deactivate("Wrong output!");
+			player.deactivate("Wrong output! " + e.getMessage());
 			player.setScore(-1);
 			endGame();
 		}
 		catch (InvalidActionException e) {
-			String deactivateMessage = e.getMessage();
-			player.deactivate(deactivateMessage);
+			player.deactivate(e.getMessage());
 			player.setScore(-1);
 			endGame();
 		}
 		
-		return null;
+		return Collections.emptyList();
 	}
 	
 	private void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
@@ -369,12 +418,36 @@ public class Referee extends AbstractReferee {
 	}
 	
 	private void endGame() {
-		// TODO insert end game winner checks here
+		Player winner = null;
 		
-		if (gameManager.isGameEnd())
-			return;
+		Player player1 = gameManager.getPlayers().get(0);
+		Player player2 = gameManager.getPlayers().get(1);
+		
+		if (player1.getScore() > player2.getScore()) {
+			winner = player1;
+		}
+		else if (player1.getScore() < player2.getScore()) {
+			winner = player2;
+		}
+		else {
+			gameManager.addToGameSummary(GameManager.formatSuccessMessage("Draw! Both players conquered " + player1.getScore() + " fields."));
+		}
+		
+		if (winner != null) {
+			gameManager.addToGameSummary(GameManager.formatSuccessMessage(winner.getNicknameToken() + " won!"));
+		}
 		
 		gameManager.endGame();
+	}
+	
+	@Override
+	public void onEnd() {
+		Player p0 = gameManager.getPlayers().get(0);
+		Player p1 = gameManager.getPlayers().get(1);
+		int[] scores = new int[] {p0.getScore(), p1.getScore()};
+		String[] texts = new String[] {p0.getScore() + " fields conquered", p1.getScore() + " fields conquered"};
+		endScreenModule.setScores(scores, texts);
+		// TODO add a logo: endScreenModule.setTitleRankingsSprite("logo.png"); 
 	}
 	
 	private void executeActions(List<Action> actions1, List<Action> actions2) {
