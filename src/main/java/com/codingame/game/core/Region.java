@@ -1,6 +1,9 @@
 package com.codingame.game.core;
 
+import java.util.Map;
 import java.util.Set;
+
+import com.codingame.game.util.Vector2D;
 
 /**
  * A set of (connected) fields, that form a region.
@@ -32,5 +35,9 @@ public class Region {
 	
 	public String getId() {
 		return "R"+id;
+	}
+	
+	public double distToPoint(Vector2D point, Map<Field, Vector2D> fieldPositions, int norm) {
+		return fields.stream().mapToDouble(f -> fieldPositions.get(f).sub(point).length(norm)).min().getAsDouble();
 	}
 }
