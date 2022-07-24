@@ -83,9 +83,9 @@ After all movements are executed the number of deployable troops is calculated a
   - [:hammer_and_wrench: Dominik - simple_view] Draw regions and fields
   - Animate actions
 - More adjustments for the Referee
-  - [:hammer_and_wrench: Tobias - referee_adjustments] Skip player in initial phase, if no fields can be chosen anymore
-  - [:hammer_and_wrench: Tobias - referee_adjustments] Detect game ending (no fields left)
-  - [:hammer_and_wrench: Tobias - referee_adjustments] Find out who won the game at the end
+  - [:heavy_check_mark: Tobias - referee_adjustments, master] Skip player in initial phase, if no fields can be chosen anymore
+  - [:heavy_check_mark: Tobias - referee_adjustments, master] Detect game ending (no fields left)
+  - [:heavy_check_mark: Tobias - referee_adjustments, master] Find out who won the game at the end
 - [:heavy_check_mark: Dominik - simple_bot, master] Create a simple bot (for testing)
 - Generate random maps
   - Generate a random, symmetric field graph
