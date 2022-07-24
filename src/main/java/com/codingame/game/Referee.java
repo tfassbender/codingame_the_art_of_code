@@ -27,7 +27,7 @@ import com.google.inject.Inject;
 
 public class Referee extends AbstractReferee {
 	
-	public static final int FRAME_DURATION = 800;
+	public static final int FRAME_DURATION = 1000;
 	public static final int MAX_TURNS = 200;
 	public static final int NUM_PLAYERS = 2;
 	
@@ -122,7 +122,6 @@ public class Referee extends AbstractReferee {
 			boolean player1Active = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1) > 0;
 			boolean player2Active = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2) > 0;
 			
-			
 			if (player1Active)
 				sendTurnInput(player1, Owner.PLAYER_1);
 			
@@ -203,7 +202,7 @@ public class Referee extends AbstractReferee {
 		int troopsPlayer2 = map.getNumTroopsControlledByPlayer(Owner.PLAYER_2);
 		int deployableTroopsPlayer1 = map.calculateDeployableTroops(Owner.PLAYER_1, firstDeployment);
 		int deployableTroopsPlayer2 = map.calculateDeployableTroops(Owner.PLAYER_2, firstDeployment);
-
+		
 		view.updatePlayerStats(Owner.PLAYER_1, fieldsPlayer1, troopsPlayer1, deployableTroopsPlayer1);
 		view.updatePlayerStats(Owner.PLAYER_2, fieldsPlayer2, troopsPlayer2, deployableTroopsPlayer2);
 		view.updateFields(map.fields);
