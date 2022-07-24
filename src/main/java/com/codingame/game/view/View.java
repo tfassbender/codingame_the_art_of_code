@@ -5,7 +5,6 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -40,7 +39,7 @@ public class View {
 	
 	private Map<Field, Vector2D> cachedFieldPositions;
 	private Map<Region, Integer> cachedRegionColors;
-
+	
 	// fields that has to be kept up to date during the game
 	private Map<Field, Text> fieldText;
 	private Text statisticsPlayer1;
@@ -179,7 +178,7 @@ public class View {
 		grid.setDistNorm(1);
 		Map<Region, Polygon> regionPolys = grid.createRegionPolygons(graphicEntityModule);
 		
-		for (Region region : regions ) {
+		for (Region region : regions) {
 			Polygon poly = regionPolys.get(region);
 			
 			poly.setFillColor(coloring.get(region));
@@ -190,12 +189,12 @@ public class View {
 	public void drawConnections(Set<Pair<Field, Field>> connections, Set<Region> regions) {
 		Set<Field> fields = connections.stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toSet());
 		Map<Field, Vector2D> positions = getPositions(fields);
-
+		
 		for (Pair<Field, Field> connection : connections) {
 			Vector2D pos1 = positions.get(connection.getKey());
 			Vector2D pos2 = positions.get(connection.getValue());
 			if (pos2 == null) {
-				System.err.println("Value was: "+connection.getValue().id);
+				System.err.println("Value was: " + connection.getValue().id);
 			}
 			Vector2D dir = pos2.sub(pos1);
 			// TODO this border algorithm is not always correct
@@ -211,10 +210,11 @@ public class View {
 			}
 			
 			if (drawIndrect) {
-				graphicEntityModule.createLine().setX((int)pos1.x).setY((int)pos1.y).setX2((int)inter1.x).setY2((int)inter1.y).setLineWidth(3).setLineColor(0x2A914E);
-				graphicEntityModule.createLine().setX((int)pos2.x).setY((int)pos2.y).setX2((int)inter2.x).setY2((int)inter2.y).setLineWidth(3).setLineColor(0x2A914E);
-			} else {
-				graphicEntityModule.createLine().setX((int)pos1.x).setY((int)pos1.y).setX2((int)pos2.x).setY2((int)pos2.y).setLineWidth(3).setLineColor(0x2A914E);
+				graphicEntityModule.createLine().setX((int) pos1.x).setY((int) pos1.y).setX2((int) inter1.x).setY2((int) inter1.y).setLineWidth(3).setLineColor(0x2A914E);
+				graphicEntityModule.createLine().setX((int) pos2.x).setY((int) pos2.y).setX2((int) inter2.x).setY2((int) inter2.y).setLineWidth(3).setLineColor(0x2A914E);
+			}
+			else {
+				graphicEntityModule.createLine().setX((int) pos1.x).setY((int) pos1.y).setX2((int) pos2.x).setY2((int) pos2.y).setLineWidth(3).setLineColor(0x2A914E);
 			}
 		}
 	}
@@ -224,16 +224,13 @@ public class View {
 	}
 	
 	private Vector2D findClosestBorderIntersection(Vector2D start, Vector2D dir) {
-		Vector2D[] borderPoints = {new Vector2D(GAME_FIELD_X, GAME_FIELD_Y), 
-				new Vector2D(GAME_FIELD_X+GAME_FIELD_WIDTH, GAME_FIELD_Y),
-				new Vector2D(GAME_FIELD_X+GAME_FIELD_WIDTH, GAME_FIELD_Y+GAME_FIELD_HEIGHT),
-				new Vector2D(GAME_FIELD_X, GAME_FIELD_Y+GAME_FIELD_HEIGHT)};
+		Vector2D[] borderPoints = {new Vector2D(GAME_FIELD_X, GAME_FIELD_Y), new Vector2D(GAME_FIELD_X + GAME_FIELD_WIDTH, GAME_FIELD_Y), new Vector2D(GAME_FIELD_X + GAME_FIELD_WIDTH, GAME_FIELD_Y + GAME_FIELD_HEIGHT), new Vector2D(GAME_FIELD_X, GAME_FIELD_Y + GAME_FIELD_HEIGHT)};
 		Vector2D closest = null;
 		double minDist = Double.MAX_VALUE;
 		
 		for (int i = 0; i < 4; i++) {
 			Vector2D borderA = borderPoints[i];
-			Vector2D borderB = borderPoints[(i+1)%4];
+			Vector2D borderB = borderPoints[(i + 1) % 4];
 			
 			Vector2D intersection = findIntersection1D(start, dir, borderA, borderB.sub(borderA));
 			
@@ -257,34 +254,26 @@ public class View {
 		
 		if (Math.abs(dir2.x) <= Math.abs(dir2.y)) {
 			// treat dir2.x as 0
-			double t = (start2.y-start1.y)/dir1.y;
+			double t = (start2.y - start1.y) / dir1.y;
 			
-			return start1.add(dir1.setLength(dir1.length()*t));
-		} else {
+			return start1.add(dir1.setLength(dir1.length() * t));
+		}
+		else {
 			// treat dir2.y as 0
-			double t = (start2.x-start1.x)/dir1.x;
+			double t = (start2.x - start1.x) / dir1.x;
 			
-			return start1.add(dir1.setLength(dir1.length()*t));
+			return start1.add(dir1.setLength(dir1.length() * t));
 		}
 	}
 	
 	public void updateFields(Set<Field> fields) {
 		Map<Owner, Integer> ownerColors = getColorForOwner();
-		Map<Field, Vector2D> positions = getPositions(fields);
-		int fontSize = 40;
 		
 		for (Field field : fields) {
-			Vector2D pos = positions.get(field);
-			String txt = field.getTroops()+"";
-			Rectangle2D txtBox = getBounds(txt, fontSize); // get box size for single digit
-			int xoff = (int) (txtBox.getWidth()/2);
-			int yoff = (int) (txtBox.getHeight()/2);
+			String txt = Integer.toString(field.getTroops());
 			
 			Text cgText = fieldText.get(field);
-			boolean updatePosition = cgText.getText().length() != txt.length();
 			cgText.setText(txt).setFillColor(ownerColors.get(field.getOwner()));
-			if (updatePosition)
-				cgText.setX((int)pos.x-xoff).setY((int)pos.y-yoff);
 		}
 	}
 	
@@ -294,16 +283,16 @@ public class View {
 		Map<Owner, Integer> ownerColors = getColorForOwner();
 		int fontSize = 40;
 		Rectangle2D txtBox = getBounds("2", fontSize); // get box size for single digit
-		int xoff = (int) (txtBox.getWidth()/2);
-		int yoff = (int) (txtBox.getHeight()/2);
+		int xoff = (int) (txtBox.getWidth() / 2);
+		int yoff = (int) (txtBox.getHeight() / 2);
 		
 		for (Field field : fields) {
 			Vector2D pos = positions.get(field);
-			String txt = field.getTroops()+"";
-
-			graphicEntityModule.createRoundedRectangle().setX((int)pos.x-5*xoff/2).setY((int)pos.y-3*yoff/2).setWidth(5*xoff).setHeight(3*yoff).setFillColor(0x000000);
-			graphicEntityModule.createText(field.id+"").setFontSize(fontSize/2).setX((int)pos.x).setY((int)pos.y+14).setFillColor(0xffe511);
-			Text cgText = graphicEntityModule.createText(txt).setFontSize(fontSize).setX((int)pos.x-xoff).setY((int)pos.y-yoff).setFillColor(ownerColors.get(field.getOwner()));
+			String txt = Integer.toString(field.getTroops());
+			
+			graphicEntityModule.createRoundedRectangle().setX((int) pos.x - 5 * xoff / 2).setY((int) pos.y - 3 * yoff / 2).setWidth(5 * xoff).setHeight(3 * yoff).setFillColor(0x000000);
+			graphicEntityModule.createText(Integer.toString(field.id)).setFontSize(fontSize / 2).setX((int) pos.x).setY((int) pos.y + 14).setAnchorX(0.5).setFillColor(0xffe511);
+			Text cgText = graphicEntityModule.createText(txt).setFontSize(fontSize).setX((int) pos.x).setY((int) pos.y).setAnchor(0.5).setFillColor(ownerColors.get(field.getOwner()));
 			fieldText.put(field, cgText);
 		}
 	}
@@ -323,7 +312,7 @@ public class View {
 		
 		return colors;
 	}
-
+	
 	private Map<Field, Vector2D> getPositions(Set<Field> fields) {
 		if (cachedFieldPositions == null) {
 			cachedFieldPositions = estimateFieldPositions(fields);
@@ -331,15 +320,15 @@ public class View {
 		
 		return cachedFieldPositions;
 	}
-
+	
 	private Map<Region, Integer> getRegionColors(Set<Region> regions) {
 		if (cachedRegionColors == null) {
 			cachedRegionColors = new HashMap<Region, Integer>();
 			
 			for (Region region : regions) {
-				cachedRegionColors.put(region, (1+region.getId().hashCode()*1337)%0xFFFFF);
+				cachedRegionColors.put(region, (1 + region.getId().hashCode() * 1337) % 0xFFFFF);
 			}
-		} 
+		}
 		
 		return cachedRegionColors;
 	}
@@ -349,47 +338,48 @@ public class View {
 		
 		// right now, we use hard coded values
 		if (fields.size() == 8) { // map_one_region
-			double xDist = 0.25*GAME_FIELD_WIDTH;
-			double yDist = 0.4*GAME_FIELD_HEIGHT;
+			double xDist = 0.25 * GAME_FIELD_WIDTH;
+			double yDist = 0.4 * GAME_FIELD_HEIGHT;
 			
 			for (Field field : fields) {
 				int id = field.id;
-				boolean mirrorX = id >= fields.size()/2;
+				boolean mirrorX = id >= fields.size() / 2;
 				boolean mirrorY = false;
-				id = id % (fields.size()/2);
+				id = id % (fields.size() / 2);
 				
-				double xDiff = xDist/2;
+				double xDiff = xDist / 2;
 				double yDiff = yDist;
 				
 				if (id == 1) {
 					xDiff += xDist;
 				}
 				
-				while(id >= 1) {
-					yDiff-=yDist;
-					id-=2;
+				while (id >= 1) {
+					yDiff -= yDist;
+					id -= 2;
 				}
 				
 				if (mirrorX)
-					xDiff*=-1;
+					xDiff *= -1;
 				
 				if (mirrorY)
-					yDiff*=-1;
-					
-				double x = GAME_FIELD_WIDTH/2 - xDiff;
-				double y = GAME_FIELD_HEIGHT/2 - yDiff;
+					yDiff *= -1;
 				
-				positions.put(field, new Vector2D(GAME_FIELD_X+x, GAME_FIELD_Y+y));
+				double x = GAME_FIELD_WIDTH / 2 - xDiff;
+				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
+				
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
 			}
-		} else if (fields.size() == 18) { // map_two_regions
-			double xDist = 0.15*GAME_FIELD_WIDTH;
-			double yDist = 0.3*GAME_FIELD_HEIGHT;
+		}
+		else if (fields.size() == 18) { // map_two_regions
+			double xDist = 0.15 * GAME_FIELD_WIDTH;
+			double yDist = 0.3 * GAME_FIELD_HEIGHT;
 			
 			for (Field field : fields) {
 				int id = field.id;
-				boolean mirrorX = id >= fields.size()/2;
+				boolean mirrorX = id >= fields.size() / 2;
 				boolean mirrorY = false;
-				id = id % (fields.size()/2);
+				id = id % (fields.size() / 2);
 				
 				double xDiff = 0;
 				double yDiff = 0;
@@ -397,100 +387,110 @@ public class View {
 				if (id == 2) {
 					xDiff = 3 * xDist;
 					yDiff = 0;
-				} else if (id < 2 || id > 6) {
+				}
+				else if (id < 2 || id > 6) {
 					int idX = id < 2 ? id : id - 7;
-					xDiff = (2-idX) * xDist;
+					xDiff = (2 - idX) * xDist;
 					yDiff = 1.5 * yDist;
-
+					
 					mirrorY = id > 6;
-				} else { // 3, 4, 5 6
+				}
+				else { // 3, 4, 5 6
 					int idX = id < 5 ? id : id - 2;
 					xDiff = idX == 3 ? 2.25 * xDist : .5 * xDist;
 					yDiff = 0.5 * yDist;
-
-					mirrorY = id > 4;					
+					
+					mirrorY = id > 4;
 				}
 				
 				if (mirrorX)
-					xDiff*=-1;
+					xDiff *= -1;
 				
 				if (mirrorY)
-					yDiff*=-1;
-					
-				double x = GAME_FIELD_WIDTH/2 - xDiff;
-				double y = GAME_FIELD_HEIGHT/2 - yDiff;
+					yDiff *= -1;
 				
-				positions.put(field, new Vector2D(GAME_FIELD_X+x, GAME_FIELD_Y+y));
+				double x = GAME_FIELD_WIDTH / 2 - xDiff;
+				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
+				
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
 			}
-		} else if (fields.size() == 26) { // map_five_regions
-			double xDist = 0.1*GAME_FIELD_WIDTH;
-			double yDist = 0.2*GAME_FIELD_HEIGHT;
+		}
+		else if (fields.size() == 26) { // map_five_regions
+			double xDist = 0.1 * GAME_FIELD_WIDTH;
+			double yDist = 0.2 * GAME_FIELD_HEIGHT;
 			double regionMoveX = 0.85;
 			
 			for (Field field : fields) {
 				int id = field.id;
-				boolean mirrorX = id >= fields.size()/2;
+				boolean mirrorX = id >= fields.size() / 2;
 				boolean mirrorY = false;
-				id = id % (fields.size()/2);
+				id = id % (fields.size() / 2);
 				
 				double xDiff = 0;
 				double yDiff = 0;
 				
 				if (id >= 10 && id <= 12) { // region C
 					xDiff = xDist;
-					yDiff = -(id-11) * yDist;
-				} else if (id >= 0 && id <= 5) {// region A
+					yDiff = -(id - 11) * yDist;
+				}
+				else if (id >= 0 && id <= 5) {// region A
 					int row = 0;
 					
 					if (id < 3) {
-						xDiff = regionMoveX * (5-id) * xDist;
+						xDiff = regionMoveX * (5 - id) * xDist;
 						row = 0;
-					} else if (id < 5) {
-						xDiff = regionMoveX * (7.5-id) * xDist;
+					}
+					else if (id < 5) {
+						xDiff = regionMoveX * (7.5 - id) * xDist;
 						row = 1;
-					} else {
-						xDiff = regionMoveX * (5-1) * xDist;
+					}
+					else {
+						xDiff = regionMoveX * (5 - 1) * xDist;
 						row = 2;
 					}
 					
-					yDiff = 0.75 * (3-row) * yDist;
-				} else { // region B
+					yDiff = 0.75 * (3 - row) * yDist;
+				}
+				else { // region B
 					int row = 0;
 					
 					if (id == 6) {
 						xDiff = regionMoveX * (4) * xDist;
 						row = 0;
-					} else if (id == 9) {
+					}
+					else if (id == 9) {
 						xDiff = regionMoveX * (4) * xDist;
 						row = 2;
-					} else {
-						xDiff = regionMoveX * (4) * xDist + 1.5 * (7.5-id) * xDist;
+					}
+					else {
+						xDiff = regionMoveX * (4) * xDist + 1.5 * (7.5 - id) * xDist;
 						row = 1;
 					}
 					
-					yDiff = -0.75 * (row+1) * yDist;
+					yDiff = -0.75 * (row + 1) * yDist;
 				}
-					
+				
 				if (mirrorX)
-					xDiff*=-1;
+					xDiff *= -1;
 				
 				if (mirrorY)
-					yDiff*=-1;
-					
-				double x = GAME_FIELD_WIDTH/2 - xDiff;
-				double y = GAME_FIELD_HEIGHT/2 - yDiff;
+					yDiff *= -1;
 				
-				positions.put(field, new Vector2D(GAME_FIELD_X+x, GAME_FIELD_Y+y));
+				double x = GAME_FIELD_WIDTH / 2 - xDiff;
+				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
+				
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
 			}
-		} else {
+		}
+		else {
 			// do random placement if map not found (improvement would be to mirror half...)
 			for (Field field : fields) {
 				double x = RandomUtil.getInstance().nextFloat() * GAME_FIELD_WIDTH;
 				double y = RandomUtil.getInstance().nextFloat() * GAME_FIELD_HEIGHT;
-				positions.put(field, new Vector2D(GAME_FIELD_X+x, GAME_FIELD_Y+y));
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
 			}
 		}
-			
+		
 		return positions;
 	}
 }

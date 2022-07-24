@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.codingame.game.Action.Type;
-import com.codingame.game.build.MapGenerator;
 import com.codingame.game.build.RandomUtil;
 import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
@@ -53,7 +52,7 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50); // TODO are 50ms enough?
 		
-//		map = MapGenerator.generateMap();
+		//		map = MapGenerator.generateMap();
 		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
@@ -67,7 +66,7 @@ public class Referee extends AbstractReferee {
 		
 		sendInitialInput();
 	}
-
+	
 	private void sendInitialInput() {
 		// send a description of the map to both players
 		for (Player player : gameManager.getPlayers()) {
