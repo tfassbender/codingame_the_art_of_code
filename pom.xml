@@ -32,6 +32,12 @@
         </dependency>
         
         <dependency>
+			<groupId>com.codingame.gameengine</groupId>
+			<artifactId>module-endscreen</artifactId>
+			<version>${gamengine.version}</version>
+		</dependency>
+        
+        <dependency>
           <groupId>org.junit.jupiter</groupId>
           <artifactId>junit-jupiter-engine</artifactId>
           <version>5.5.2</version>
