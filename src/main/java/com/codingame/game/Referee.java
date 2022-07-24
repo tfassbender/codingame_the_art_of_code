@@ -1,6 +1,7 @@
 package com.codingame.game;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,7 @@ public class Referee extends AbstractReferee {
 	
 	private TurnType turnType;
 	
-	private boolean firstDeployment = true; // TODO set to false after the first deployment phase
+	private boolean firstDeployment = true;
 	
 	@Override
 	public void init() {
@@ -105,16 +106,33 @@ public class Referee extends AbstractReferee {
 		Player player1 = gameManager.getPlayer(0);
 		Player player2 = gameManager.getPlayer(1);
 		
-		//TODO in CHOOSE_STARTING_FIELD turns: only send input and receive output if the player needs to pick a starting field
+		List<Action> actions1 = Collections.emptyList();
+		List<Action> actions2 = Collections.emptyList();
 		
-		sendTurnInput(player1, Owner.PLAYER_1);
-		sendTurnInput(player2, Owner.PLAYER_2);
-		
-		player1.execute();
-		player2.execute();
-		
-		List<Action> actions1 = getActions(player1, Owner.PLAYER_1);
-		List<Action> actions2 = getActions(player2, Owner.PLAYER_2);
+		if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
+			// the player only take a turn if there are starting fields left to choose
+			if (map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1) > 0) {
+				sendTurnInput(player1, Owner.PLAYER_1);
+				player1.execute();
+				actions1 = getActions(player1, Owner.PLAYER_1);
+			}
+			if (map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2) > 0) {
+				sendTurnInput(player2, Owner.PLAYER_2);
+				player2.execute();
+				actions2 = getActions(player2, Owner.PLAYER_2);
+			}
+		}
+		else {
+			// the turn type is DEPLOY_TROOPS or MOVE_TROOPS, so both players take a turn
+			sendTurnInput(player1, Owner.PLAYER_1);
+			sendTurnInput(player2, Owner.PLAYER_2);
+			
+			player1.execute();
+			player2.execute();
+			
+			actions1 = getActions(player1, Owner.PLAYER_1);
+			actions2 = getActions(player2, Owner.PLAYER_2);
+		}
 		
 		// the game might end here, because of wrong outputs
 		// in this case, we can not do anything more in this game turn
