@@ -19,7 +19,9 @@ import com.codingame.game.util.Pair;
 import com.codingame.game.view.View;
 import com.codingame.gameengine.core.AbstractPlayer.TimeoutException;
 import com.codingame.gameengine.core.AbstractReferee;
+import com.codingame.gameengine.core.GameManager;
 import com.codingame.gameengine.core.MultiplayerGameManager;
+import com.codingame.gameengine.module.endscreen.EndScreenModule;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.google.inject.Inject;
 
@@ -33,6 +35,8 @@ public class Referee extends AbstractReferee {
 	private MultiplayerGameManager<Player> gameManager;
 	@Inject
 	private GraphicEntityModule graphicEntityModule;
+	@Inject
+	private EndScreenModule endScreenModule;
 	
 	private View view;
 	
@@ -172,10 +176,30 @@ public class Referee extends AbstractReferee {
 				turnType = TurnType.MOVE_TROOPS; // switch between deploying and moving troops
 				break;
 			case MOVE_TROOPS:
+				map.resetRoundingLosses();
 				turnType = TurnType.DEPLOY_TROOPS; // switch between deploying and moving troops
 				break;
 			default:
 				throw new IllegalStateException("Unknown turn type: " + turnType);
+		}
+		
+		// update the scores and statistics of each player
+		int fieldsPlayer1 = map.getNumFieldsControlledByPlayer(Owner.PLAYER_1);
+		int fieldsPlayer2 = map.getNumFieldsControlledByPlayer(Owner.PLAYER_2);
+		int troopsPlayer1 = map.getNumTroopsControlledByPlayer(Owner.PLAYER_1);
+		int troopsPlayer2 = map.getNumTroopsControlledByPlayer(Owner.PLAYER_2);
+		int deployableTroopsPlayer1 = map.calculateDeployableTroops(Owner.PLAYER_1, firstDeployment);
+		int deployableTroopsPlayer2 = map.calculateDeployableTroops(Owner.PLAYER_2, firstDeployment);
+		
+		view.updatePlayerStats(Owner.PLAYER_1, fieldsPlayer1, troopsPlayer1, deployableTroopsPlayer1);
+		view.updatePlayerStats(Owner.PLAYER_2, fieldsPlayer2, troopsPlayer2, deployableTroopsPlayer2);
+		
+		player1.setScore(fieldsPlayer1);
+		player2.setScore(fieldsPlayer2);
+		
+		// check whether the game has ended
+		if (fieldsPlayer1 == 0 || fieldsPlayer2 == 0) {
+			gameManager.endGame();
 		}
 	}
 	
@@ -225,21 +249,21 @@ public class Referee extends AbstractReferee {
 		}
 		catch (TimeoutException e) {
 			player.deactivate(String.format("$%d timeout!", player.getIndex()));
+			player.setScore(-1);
 			endGame();
 		}
 		catch (NumberFormatException e) {
-			player.deactivate("Wrong output!");
+			player.deactivate("Wrong output! " + e.getMessage());
 			player.setScore(-1);
 			endGame();
 		}
 		catch (InvalidActionException e) {
-			String deactivateMessage = e.getMessage();
-			player.deactivate(deactivateMessage);
+			player.deactivate(e.getMessage());
 			player.setScore(-1);
 			endGame();
 		}
 		
-		return null;
+		return Collections.emptyList();
 	}
 	
 	private void validateActions(List<Action> actions, Owner player) throws InvalidActionException {
@@ -380,12 +404,36 @@ public class Referee extends AbstractReferee {
 	}
 	
 	private void endGame() {
-		// TODO insert end game winner checks here
+		Player winner = null;
 		
-		if (gameManager.isGameEnd())
-			return;
+		Player player1 = gameManager.getPlayers().get(0);
+		Player player2 = gameManager.getPlayers().get(1);
+		
+		if (player1.getScore() > player2.getScore()) {
+			winner = player1;
+		}
+		else if (player1.getScore() < player2.getScore()) {
+			winner = player2;
+		}
+		else {
+			gameManager.addToGameSummary(GameManager.formatSuccessMessage("Draw! Both players conquered " + player1.getScore() + " fields."));
+		}
+		
+		if (winner != null) {
+			gameManager.addToGameSummary(GameManager.formatSuccessMessage(winner.getNicknameToken() + " won!"));
+		}
 		
 		gameManager.endGame();
+	}
+	
+	@Override
+	public void onEnd() {
+		Player p0 = gameManager.getPlayers().get(0);
+		Player p1 = gameManager.getPlayers().get(1);
+		int[] scores = new int[] {p0.getScore(), p1.getScore()};
+		String[] texts = new String[] {p0.getScore() + " fields conquered", p1.getScore() + " fields conquered"};
+		endScreenModule.setScores(scores, texts);
+		// TODO add a logo: endScreenModule.setTitleRankingsSprite("logo.png"); 
 	}
 	
 	private void executeActions(List<Action> actions1, List<Action> actions2) {

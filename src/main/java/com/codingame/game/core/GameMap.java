@@ -318,6 +318,14 @@ public class GameMap {
 				pair.getKey().id == targetId && pair.getValue().id == sourceId);
 	}
 	
+	public int getNumTroopsControlledByPlayer(Owner player) {
+		return fields.stream().filter(field -> field.getOwner() == player).mapToInt(Field::getTroops).sum();
+	}
+	
+	public int getNumFieldsControlledByPlayer(Owner player) {
+		return (int) fields.stream().filter(field -> field.getOwner() == player).count();
+	}
+	
 	public StartingFieldChoice getStartingFieldChoice() {
 		return startingFieldChoice;
 	}
