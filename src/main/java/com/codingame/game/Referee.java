@@ -67,7 +67,7 @@ public class Referee extends AbstractReferee {
 		
 		sendInitialInput();
 	}
-	
+
 	private void sendInitialInput() {
 		// send a description of the map to both players
 		for (Player player : gameManager.getPlayers()) {
@@ -159,6 +159,8 @@ public class Referee extends AbstractReferee {
 			default:
 				throw new IllegalStateException("Unknown turn type: " + turnType);
 		}
+		
+		view.updateFields(map.fields);
 	}
 	
 	/**

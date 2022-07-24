@@ -64,7 +64,7 @@ public class Agent1 {
 			FieldWithConnection target = fields.get(targetId);
 		
 			source.addConnection(target);
-//			target.addConnection(source);
+			target.addConnection(source);
 		}
 		
 		// next line: one integer - the NUMBER_OF_REGIONS

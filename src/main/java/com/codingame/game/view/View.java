@@ -1,5 +1,9 @@
 package com.codingame.game.view;
 
+import java.awt.Font;
+import java.awt.font.FontRenderContext;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +38,13 @@ public class View {
 	
 	private GraphicEntityModule graphicEntityModule;
 	
-	private Text statisticsPlayer1;
-	private Text statisticsPlayer2;
-		
 	private Map<Field, Vector2D> cachedFieldPositions;
 	private Map<Region, Integer> cachedRegionColors;
+
+	// fields that has to be kept up to date during the game
+	private Map<Field, Text> fieldText;
+	private Text statisticsPlayer1;
+	private Text statisticsPlayer2;
 	
 	public View(GraphicEntityModule graphicEntityModule) {
 		this.graphicEntityModule = graphicEntityModule;
@@ -169,7 +175,7 @@ public class View {
 		grid.setHeight(GAME_FIELD_HEIGHT);
 		grid.setX(GAME_FIELD_X);
 		grid.setY(GAME_FIELD_Y);
-		grid.setResolution(10);
+		grid.setResolution(8);
 		grid.setDistNorm(1);
 		Map<Region, Polygon> regionPolys = grid.createRegionPolygons(graphicEntityModule);
 		
@@ -192,17 +198,9 @@ public class View {
 				System.err.println("Value was: "+connection.getValue().id);
 			}
 			Vector2D dir = pos2.sub(pos1);
+			// TODO this border algorithm is not always correct
 			Vector2D inter1 = findClosestBorderIntersection(pos1, dir);
 			Vector2D inter2 = findClosestBorderIntersection(pos2, dir);
-			
-			if (inter1 == null) {
-				System.err.println("inter1 is null: "+connection.getValue().id+" "+connection.getKey().id);
-				inter1 = findClosestBorderIntersection(pos1, dir);
-			}
-			
-			if (inter2 == null) {
-				System.err.println("inter2 is null: "+connection.getValue().id+" "+connection.getKey().id);
-			}
 			
 			double directLength = pos1.distance(pos2);
 			boolean drawIndrect = false;
@@ -270,16 +268,60 @@ public class View {
 		}
 	}
 	
-	public void drawFields(Set<Field> fields) {
+	public void updateFields(Set<Field> fields) {
+		Map<Owner, Integer> ownerColors = getColorForOwner();
 		Map<Field, Vector2D> positions = getPositions(fields);
-
+		int fontSize = 40;
+		
 		for (Field field : fields) {
 			Vector2D pos = positions.get(field);
+			String txt = field.getTroops()+"";
+			Rectangle2D txtBox = getBounds(txt, fontSize); // get box size for single digit
+			int xoff = (int) (txtBox.getWidth()/2);
+			int yoff = (int) (txtBox.getHeight()/2);
 			
-			System.err.format("Drawing field: id=%d, troops=%d, x=%d, y=%d\n", field.id, field.getTroops(), (int)pos.x, (int)pos.y);
-			
-			graphicEntityModule.createText(field.id+"").setFontSize(40).setX((int)pos.x).setY((int)pos.y);
+			Text cgText = fieldText.get(field);
+			boolean updatePosition = cgText.getText().length() != txt.length();
+			cgText.setText(txt).setFillColor(ownerColors.get(field.getOwner()));
+			if (updatePosition)
+				cgText.setX((int)pos.x-xoff).setY((int)pos.y-yoff);
 		}
+	}
+	
+	public void drawFields(Set<Field> fields) {
+		fieldText = new HashMap<Field, Text>();
+		Map<Field, Vector2D> positions = getPositions(fields);
+		Map<Owner, Integer> ownerColors = getColorForOwner();
+		int fontSize = 40;
+		Rectangle2D txtBox = getBounds("2", fontSize); // get box size for single digit
+		int xoff = (int) (txtBox.getWidth()/2);
+		int yoff = (int) (txtBox.getHeight()/2);
+		
+		for (Field field : fields) {
+			Vector2D pos = positions.get(field);
+			String txt = field.getTroops()+"";
+
+			graphicEntityModule.createRoundedRectangle().setX((int)pos.x-5*xoff/2).setY((int)pos.y-3*yoff/2).setWidth(5*xoff).setHeight(3*yoff).setFillColor(0x000000);
+			graphicEntityModule.createText(field.id+"").setFontSize(fontSize/2).setX((int)pos.x).setY((int)pos.y+14).setFillColor(0xffe511);
+			Text cgText = graphicEntityModule.createText(txt).setFontSize(fontSize).setX((int)pos.x-xoff).setY((int)pos.y-yoff).setFillColor(ownerColors.get(field.getOwner()));
+			fieldText.put(field, cgText);
+		}
+	}
+	
+	private Rectangle2D getBounds(String txt, int fontSize) {
+		Font font = new Font(txt, Font.PLAIN, 40);
+		FontRenderContext frc = new FontRenderContext(new AffineTransform(), true, true);
+		return font.getStringBounds(txt, frc);
+	}
+	
+	private Map<Owner, Integer> getColorForOwner() {
+		Map<Owner, Integer> colors = new HashMap<Owner, Integer>();
+		
+		colors.put(Owner.NEUTRAL, 0xd8a629);
+		colors.put(Owner.PLAYER_2, 0xd51313);
+		colors.put(Owner.PLAYER_1, 0x636bff);
+		
+		return colors;
 	}
 
 	private Map<Field, Vector2D> getPositions(Set<Field> fields) {
@@ -381,8 +423,9 @@ public class View {
 				positions.put(field, new Vector2D(GAME_FIELD_X+x, GAME_FIELD_Y+y));
 			}
 		} else if (fields.size() == 26) { // map_five_regions
-			double xDist = 0.12*GAME_FIELD_WIDTH;
+			double xDist = 0.1*GAME_FIELD_WIDTH;
 			double yDist = 0.2*GAME_FIELD_HEIGHT;
+			double regionMoveX = 0.85;
 			
 			for (Field field : fields) {
 				int id = field.id;
@@ -398,7 +441,6 @@ public class View {
 					yDiff = -(id-11) * yDist;
 				} else if (id >= 0 && id <= 5) {// region A
 					int row = 0;
-					double regionMoveX = 0.75;
 					
 					if (id < 3) {
 						xDiff = regionMoveX * (5-id) * xDist;
@@ -414,7 +456,6 @@ public class View {
 					yDiff = 0.75 * (3-row) * yDist;
 				} else { // region B
 					int row = 0;
-					double regionMoveX = 0.75;
 					
 					if (id == 6) {
 						xDiff = regionMoveX * (4) * xDist;
@@ -423,7 +464,7 @@ public class View {
 						xDiff = regionMoveX * (4) * xDist;
 						row = 2;
 					} else {
-						xDiff = regionMoveX * (11.5-id) * xDist;
+						xDiff = regionMoveX * (4) * xDist + 1.5 * (7.5-id) * xDist;
 						row = 1;
 					}
 					
