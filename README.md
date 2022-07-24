@@ -83,10 +83,13 @@ After all movements are executed the number of deployable troops is calculated a
   - [:hammer_and_wrench: Dominik - simple_view] Draw regions and fields
   - Animate actions
 - More adjustments for the Referee
-  - Skip player in initial phase, if no fields can be chosen anymore
-  - Detect game ending (no fields left or 0 troops per deploy phase + no troops left on the field)
-  - Find out who won the game at the end
+  - [:hammer_and_wrench: Tobias - referee_adjustments] Skip player in initial phase, if no fields can be chosen anymore
+  - [:hammer_and_wrench: Tobias - referee_adjustments] Detect game ending (no fields left)
+  - [:hammer_and_wrench: Tobias - referee_adjustments] Find out who won the game at the end
 - [:heavy_check_mark: Dominik - simple_bot, master] Create a simple bot (for testing)
+- Generate random maps
+  - Generate a random, symmetric field graph
+  - Calculate the positions of the random fields on the map
 - Create boss bots (not in this repo, so they remain private)
 - [:heavy_check_mark: Tobias - master] Define the Rules (in this .md file)
 - [:heavy_check_mark: Tobias - master] Add the Rules to `config/statement_en.html`
