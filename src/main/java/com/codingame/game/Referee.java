@@ -235,8 +235,6 @@ public class Referee extends AbstractReferee {
 		player.sendInputLine(map.getStartingFieldChoice().getStartingFieldsLeft(playerId) + " " + //
 				map.getStartingFieldChoice().getStartingFieldsLeft(playerId.getOpponent()));
 		
-		// next line: the NUMBER_OF_FIELDS on the map
-		player.sendInputLine(Integer.toString(map.fields.size()));
 		// next NUMBER_OF_FIELDS lines: three integers - the FIELD_ID, the NUMBER_OF_TROOPS in this field, the OWNER of this field 
 		//                              (1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral)
 		for (Field field : map.fields) {

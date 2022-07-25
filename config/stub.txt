@@ -13,7 +13,6 @@ read deployableTroops:int
 read enemyDeployableTroops:int
 read startingFieldsLeft:int
 read enemyStartingFieldsLeft:int
-read numberOfFields:int
 loop numberOfFields read id:int troops:int owner:int
 write RANDOM
 
@@ -25,7 +24,6 @@ numberOfRegions: Number of regions (field groups) on the map
 bonusTroops: Number on bonus troops, if one has all fields in the region
 numberOfFields: Number of fields on the map
 numberOfConnections: Number of connections between the fields (bidirectional)
-numberOfFieldsInRegion: Number of fields, that belong to the region
 fieldId: Id of one field, that belongs to the region 
 priority: Either UPPER or LOWER - the part of the field (identified by id) in which you have the higher priority to choose a starting field
 turnType: CHOOSE_STARTING_FIELDS, DEPLOY_TROOPS or MOVE_TROOPS
@@ -35,7 +33,6 @@ deployableTroops: Number of troops, that can be deployed
 enemyDeployableTroops: Number of troops, that the enemy can deploy
 startingFieldsLeft: Number of fields you can still choose
 enemyStartingFieldsLeft: Number of fields that the enemy can still choose
-numberOfFields: Number of fields on the map
 owner: 1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral
 
 OUTPUT

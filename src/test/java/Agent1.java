@@ -118,9 +118,7 @@ public class Agent1 {
 		startingFieldsLeft = sc.nextInt();
 		int enemyStartingFieldsLeft = sc.nextInt();
 		
-		// next line: the NUMBER_OF_FIELDS on the map
-		long numberOfFields = sc.nextLong();
-		for (int i = 0; i < numberOfFields; i++) {
+		for (int i = 0; i < fields.size(); i++) {
 			int id = sc.nextInt(); // FIELD_ID is the id of the Field
 			int troops = sc.nextInt(); // NUMBER_OF_TROOPS in this field
 			int owner = sc.nextInt(); // OWNER of this field (1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral)
@@ -142,7 +140,7 @@ public class Agent1 {
 
     private void thinkChooseStarting() {
     	// just do random (or wait if we can't choose another)
-    	actions.add(new Action(Type.RANDOM));
+    	actions.add(new Action(Action.Type.RANDOM));
     }
     
     private void thinkDeploy() {
@@ -151,14 +149,14 @@ public class Agent1 {
     	
     	// tmp solution, while 0 fields != gameEnd
     	if (myFields.size() == 0) {
-    		actions.add(new Action(Type.WAIT));
+    		actions.add(new Action(Action.Type.WAIT));
     		return;
     	}
     	
     	while(deployableTroops > 0) {
     		Field field = myFields.get((int) (Math.random()*myFields.size()));
     		
-    		actions.add(new Action(Type.DEPLOY, field.id, 1));
+    		actions.add(new Action(Action.Type.DEPLOY, field.id, 1));
     		
     		deployableTroops--;
     	}
@@ -184,7 +182,7 @@ public class Agent1 {
 					troops = myField.getTroops();
 				}
 				
-				actions.add(new Action(Type.MOVE, myField.id, targets.get(i).id, troops));
+				actions.add(new Action(Action.Type.MOVE, myField.id, targets.get(i).id, troops));
 				
 				myField.adjustTroops(-troops);
 			}
