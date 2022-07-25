@@ -446,7 +446,7 @@ public class Referee extends AbstractReferee {
 		int[] scores = new int[] {p0.getScore(), p1.getScore()};
 		String[] texts = new String[] {p0.getScore() + " fields conquered", p1.getScore() + " fields conquered"};
 		endScreenModule.setScores(scores, texts);
-		// TODO add a logo: endScreenModule.setTitleRankingsSprite("logo.png"); 
+		endScreenModule.setTitleRankingsSprite("logo.png");
 	}
 	
 	private void executeActions(List<Action> actions1, List<Action> actions2) {
