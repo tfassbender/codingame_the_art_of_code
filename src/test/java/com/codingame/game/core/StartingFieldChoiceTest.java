@@ -7,7 +7,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 
 import com.codingame.game.build.RandomUtil;
@@ -18,18 +17,11 @@ public class StartingFieldChoiceTest {
 	
 	private StartingFieldChoice startingFieldChoice;
 	
-	@BeforeEach
-	public void setup() {
+	@RepeatedTest(20)
+	public void test_chose_random_starting_fields__no_duplicated_starting_fields() throws Exception {
 		Random random = new Random();
 		RandomUtil.init(random.nextLong());
 		startingFieldChoice = new StartingFieldChoice(20);
-	}
-	
-	@RepeatedTest(20)
-	public void test_chose_random_starting_fields__no_duplicated_starting_fields() throws Exception {
-		// workaround for codingame build, maybe BeforeEach is not working on the site with repeated test?
-		if (startingFieldChoice == null)
-			setup();
 		
 		List<Pair<Integer, Integer>> startingFields = TestUtils.getFieldPerReflection(startingFieldChoice, "randomStartingFields");
 		List<Integer> flattenedStartingFields = startingFields.stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toList());
