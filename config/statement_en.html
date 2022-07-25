@@ -114,13 +114,12 @@
     <div class="blk">
       <div class="title">Initial input</div>
       <div class="text">
-        <p><span class="statement-lineno">First line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS</var> in the map.</p>
+        <p><span class="statement-lineno">First line: </span><const>1</const> integer - The <var>NUMBER_OF_REGIONS</var>.</p>
+        <p><span class="statement-lineno">Next <var>NUMBER_OF_REGIONS</var> lines: <const>2</const> integers - The <var>REGION_ID</var> and the number of <var>REGION_BONUS_TROOPS</var></span></p>
+        <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS</var> in the map.</p>
+        <p><span class="statement-lineno">Next <var>NUMBER_OF_FIELDS</var> lines: <const>2</const> integers - The <var>FIELD_ID</var> and the <var>REGION_ID</var> the field belongs to.</span></p>
         <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_CONNECTIONS</var> between fields.</p>
-        <p><span class="statement-lineno">Next <var>NUMBER_OF_CONNECTIONS</var> lines: </span><const>3</const> integers - The <var>SOURCE_ID</var> and the <var>TARGET_ID</var> of the fields that are connected (bidirectional) and a <var>REGION_ID</var> for the region, this field belongs to.</p>
-        <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_REGIONS</var>.</p>
-        <p><span class="statement-lineno">Next <var>NUMBER_OF_REGIONS</var> inputs: </span></p>
-        <p><span class="statement-lineno">- <const>1</const> line: </span><const>1</const> integer - The number of <var>REGION_BONUS_TROOPS</var>.</p>
-        <p><span class="statement-lineno">- <const>1</const> line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS_IN_REGION</var>.</p>
+        <p><span class="statement-lineno">Next <var>NUMBER_OF_CONNECTIONS</var> lines: </span><const>2</const> integers - The <var>SOURCE_ID</var> and the <var>TARGET_ID</var> of the fields that are connected (bidirectional).</p>
         <p><span class="statement-lineno">Next line: </span><const>1</const> string - The <var>PRIORITY_HALF_FIELD</var>. Either <const>UPPER</const> or <const>LOWER</const> - The part of the field (identified by id) in which you have the higher priority to choose a starting field.</p>
       </div>
     </div>
