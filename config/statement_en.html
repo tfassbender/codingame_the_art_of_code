@@ -116,12 +116,11 @@
       <div class="text">
         <p><span class="statement-lineno">First line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS</var> in the map.</p>
         <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_CONNECTIONS</var> between fields.</p>
-        <p><span class="statement-lineno">Next <var>NUMBER_OF_CONNECTIONS</var> lines: </span><const>2</const> integers - The <var>SOURCE_ID</var> and the <var>TARGET_ID</var> of the fields that are connected (bidirectional).</p>
+        <p><span class="statement-lineno">Next <var>NUMBER_OF_CONNECTIONS</var> lines: </span><const>3</const> integers - The <var>SOURCE_ID</var> and the <var>TARGET_ID</var> of the fields that are connected (bidirectional) and a <var>REGION_ID</var> for the region, this field belongs to.</p>
         <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_REGIONS</var>.</p>
         <p><span class="statement-lineno">Next <var>NUMBER_OF_REGIONS</var> inputs: </span></p>
         <p><span class="statement-lineno">- <const>1</const> line: </span><const>1</const> integer - The number of <var>REGION_BONUS_TROOPS</var>.</p>
         <p><span class="statement-lineno">- <const>1</const> line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS_IN_REGION</var>.</p>
-        <p><span class="statement-lineno">- Next <var>NUBER_OF_FIELDS_IN_REGION</var> lines: </span><const>1</const> integer - The <var>FIELD_ID</var> of the field that belongs to the region.</p>
         <p><span class="statement-lineno">Next line: </span><const>1</const> string - The <var>PRIORITY_HALF_FIELD</var>. Either <const>UPPER</const> or <const>LOWER</const> - The part of the field (identified by id) in which you have the higher priority to choose a starting field.</p>
       </div>
     </div>
@@ -145,10 +144,10 @@
       <div class="text">
         <span class="statement-lineno">A single line</span> containing one of the following actions:
         <ul>
-          <li><const>PICK</const> Followed by a field id: You choose the field as starting field and add 1 troop to it</li>
+          <li><const>PICK</const> Followed by a <const>field_id</const>: You choose the field as starting field and add 1 troop to it</li>
           <li><const>RANDOM</const>: You choose a random starting field and add 1 troop to it</li>
-          <li><const>DEPLOY</const> Followed by a field id and the number of troops to deploy: Deploy troops to a field you control</li>
-          <li><const>MOVE</const> Followed by a source field id, a target field id and the number of troops: Moves troops from source field to target field</li>
+          <li><const>DEPLOY</const> Followed by a <const>field_id</const> and the <const>number_of_troops</const> to deploy: Deploy troops to a field you control</li>
+          <li><const>MOVE</const> Followed by a <const>source_field_id</const>, a <const>target_field_id</const> and the <const>number_of_troops</const>: Moves troops from source field to target field</li>
           <li><const>WAIT</const>: Does nothing</li>
         </ul>
         <br>
