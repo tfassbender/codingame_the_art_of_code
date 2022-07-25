@@ -91,8 +91,8 @@ public class View {
 				.setX(70).setY(130) //
 				.setFillColor(player1.getColorToken());
 		graphicEntityModule.createRectangle() //
-				.setWidth(120).setHeight(120) //
-				.setX(80).setY(140) //
+				.setWidth(116).setHeight(116) //
+				.setX(82).setY(142) //
 				.setFillColor(0xffffff);
 		graphicEntityModule.createSprite() //
 				.setBaseHeight(116).setBaseWidth(116) //
@@ -114,8 +114,8 @@ public class View {
 				.setX(70).setY(400) //
 				.setLineWidth(0).setFillColor(player2.getColorToken());
 		graphicEntityModule.createRectangle() //
-				.setWidth(120).setHeight(120) //
-				.setX(80).setY(410) //
+				.setWidth(116).setHeight(116) //
+				.setX(82).setY(412) //
 				.setLineWidth(0).setFillColor(0xffffff);
 		graphicEntityModule.createSprite() //
 				.setBaseHeight(116).setBaseWidth(116) //
