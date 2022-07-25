@@ -7,7 +7,7 @@
       <span>The Goal</span>
     </h1>
     <div class="statement-goal-content">
-      The goal of the game is to conquer all fields on the game map. Some of the fields have connections to other fields, allong which the troops of a player can be moved to conquer adjacent fields. To conquer fields, both players gain new troops every turn that can be deployed to the fields that a player controlls. If none of the players manages to take controll of all fields after 200 turns the player that controlls more fields winns.
+      The goal of the game is to <b>conquer all fields on the game map</b>. Some of the fields have connections to other fields, allong which the troops of a player can be moved to conquer adjacent fields. To conquer fields, both players gain new troops every turn that can be deployed to the fields that a player controlls. If none of the players manages to take controll of all fields after 200 turns the player that controlls more fields winns.
     </div>
   </div>
   <!-- RULES -->
@@ -19,12 +19,16 @@
     <div>
       <div class="statement-rules-content">
         <h3>The map</h3>
+        <p>
         The map consists of a random number of fields. Some of these fields are connected, so troops can move between the fields.<br>
-        The map is symmetric, so none of the players can gain an advantage from a unique area on the map.<br>
-        The fields on the map are grouped into regions. Every region consists of multiple fields and grants a bonus to the player who manages to conquer the whole region.<br>
+        The <b>map is symmetric</b>, so none of the players can gain an advantage from a unique area on the map.<br>
+        The <b>fields on the map are grouped into regions</b>. Every region consists of multiple fields and grants a bonus to the player who manages to conquer the whole region.<br>
+        </p>
         
         <h3>Turns</h3>
+        <p>
         The game is played in three kinds of turns:
+        </p>
         <ul>
           <li>CHOOSE_STARTING_FIELDS: the players can choose the starting fields, that each gain one troops</li>
           <li>DEPLOY_TROOPS: the players can deploy new troops to every field they controll</li>
@@ -32,37 +36,43 @@
         </ul>
         
         <h3>Chosing the starting fields</h3>
-        At the beginning of the game, both players receive the information about the fields and their connections (among other information). Then the players can choose a given number of starting fields (one per turn). After choosing a starting field, the player gains controll of the field and 1 troop is deployed to it.<br>
+        <p>
+        At the beginning of the game, both players receive the information about the fields and their connections (among other information). Then the players can choose a given number of starting fields (one per turn). After choosing a starting field, the player gains controll of the field and <b><const>1</const> troop is deployed to it</b>.<br>
         Both players choose a starting field simultaneously. Therefore it is possible that both players choose the same starting field in a single turn (a field that was already chosen in a previous turn cannot be chosen anymore). To prevent a tie when both players choose the same starting field the map is divided into two halfs (the map is symmetric). On one half of the map the first player will get the field that both players chose, while on the other half of the map, the second player gets the field (the players are infomed on which half of the map they would win a tie at the beginning of the game). The player that did not get the field, can take one turn more to choose a starting field, so both players have the same number of starting fields.<br>
-        After all starting fields are chosen, every field that was not chosen is taken by a neutral army with 2 troops per field. These troops will not attack, but just stay on a field and defend it.<br>
+        After all starting fields are chosen, every field that was not chosen is taken by a <b>neutral army with <const>2</const> troops per field</b>. These troops will not attack, but just stay on a field and defend it.<br>
+        </p>
         
         <h3>Deploying troops</h3>
+        <p>
         After choosing the starting fields the turns in which the players deploy new troops and move the troops on the map alternate. When troops need to be deployed in a turn, the players get the number of troops that can be deployed as an input. The players then can deploy any number of troops to any of their fields, till the maximum number of deployable troops is reached.<br>
-        This is done in a single turn and simultaneously, so the players won't know where the opponent deployed his troops.<br>
-        In every turn, each of the players can deploy at least 5 troops. The number of additional troops that can be deployed depends on:<br>
+        This is done in a single turn and simultaneously, so <b>the players won't know where the opponent deployed his troops</b>.<br>
+        In every turn, each of the players can deploy <b>at least <const>5</const> troops</b>. The number of additional troops that can be deployed depends on:<br>
+        </p>
         <ul>
-          <li>The number of fields that a player controlls: 1 additional troop per 3 fields, that a player controlls (rounded down)</li>
-          <li>The number of regions that a player controlls: Additional troops depending on the size of the region</li>
-          <li>The number of deployable troops from the last turn that were not used: Every troop that is not deployed in a turn, can be deployed in one of the following turns</li>
-          <li>Whether it is the first deployment turn: In the first deployment turn, every player gains 10 additional troops to deploy</li>
+          <li>The number of fields that a player controlls: <b><const>1</const> additional troop per <const>3</const> fields</b>, that a player controlls (rounded down)</li>
+          <li>The number of regions that a player controlls: Additional troops <b>depending on the size of the region</b></li>
+          <li>The number of <b>deployable troops from the last turn that were not used</b>: Every troop that is not deployed in a turn, can be deployed in one of the following turns</li>
+          <li>Whether it is the first deployment turn: <b>In the first deployment turn, every player gains <const>10</const> additional troops to deploy</b></li>
           <li>Rounding loss bonus troops: described in the next chapter</li>
         </ul>
         
         <h3>Movement of troops</h3>
-        After deploying the troops to the fields, each player can choose a list of movements, that are all executed in the same turn, so the player doesn't know about the movements of the opponent troops. The information about how many troops are present on every field of the map is given as an input at the start of this turn.<br>
+        <p>
+        After deploying the troops to the fields, each player can choose a list of movements, that are <b>all executed in the same turn, so the player doesn't know about the movements of the opponent troops</b>. The information about how many troops are present on every field of the map is given as an input at the start of this turn.<br>
         The lists of movements of both players are executed simultaneously. This means that the first move from the first player's list is executed simultaneously to the first move from the second player's list. Afterwards the second move from the first player's list is executed simultaneously to the second move from the second player's list ...<br>
         If a movement is done from one field to another field that the same player controlls, the given number of troops are just moved to the next field.<br>
-        If one player moves his troops to a field that is controlled by the opponent player (or by a neutral army), the troops battle for the controll of the field. In a battle, the attacking troops will kill 60% of opponent troops, so 10 attacking troops would kill 6 opponent troops. Defending troops kill 70% of opponent troops, so 10 defending troops would kill 7 opponent (attacking) troops. These values are always rounded up so 3 attacking troops would kill 2 defending troops and 2 defending roops would kill 2 attacking troops.<br>
-        This means that every player looses a bit more troops than he would if the calculation was preceise. Therefore the additionally killed troops (the difference in the decimal places) are summed up and given back to the player as additional troops that can be deployed in the next turn. So if a player attacks an army of 2 defenders on two different fields he would loose 2 troops in each of this battles. The additionally killed troops in each of this battles would be 0.6 (2.0 - (2 * 0.7)). This would sum up to 1.2, so the player would get 1 additional troop that can be deployed in the next turn (this value is rounded down and reset after each deployment phase).<br>
-        If the simultaneous movement of two armies causes both armies to meat on the battlefield, there is no defending army at first. Both moving armies are the attackers in this case, so both kill 60% of opponent troops. This movement is executed in two steps:
+        If one player moves his troops to a field that is controlled by the opponent player (or by a neutral army), the troops battle for the controll of the field. <b>In a battle, the attacking troops will kill <const>60%</const> of opponent troops</b>, so 10 attacking troops would kill 6 opponent troops. <b>Defending troops kill <const>70%</const> of opponent troops</b>, so 10 defending troops would kill 7 opponent (attacking) troops. <b>These values are always rounded up</b> so 3 attacking troops would kill 2 defending troops and 2 defending roops would kill 2 attacking troops.<br>
+        This means that every player looses a bit more troops than he would if the calculation was preceise. Therefore <b>the additionally killed troops (the difference in the decimal places) are summed up and given back to the player as additional troops that can be deployed in the next turn</b>. So if a player attacks an army of 2 defenders on two different fields he would loose 2 troops in each of this battles. The additionally killed troops in each of this battles would be 0.6 (2.0 - (2 * 0.7)). This would sum up to 1.2, so the player would get 1 additional troop that can be deployed in the next turn. <b>This value is rounded down and reset after each deployment phase</b>.<br>
+        If the simultaneous movement of two armies causes both armies to meat on the battlefield, there is no defending army at first. Both moving armies are the attackers in this case, so <b>both kill <const>60%</const> of opponent troops</b>. This movement is <b>executed in two steps</b>:
+        </p>
         <ul>
-          <li>In the first step, the two moving armies fight each other. All other troops on the fields, that are not moved do not take part in this first battle.</li>
+          <li>In the first step, the <b><const>2</const> moving armies fight each other</b>. All other troops on the fields, that are not moved <b>do not take part in this first battle</b>.</li>
           <li>In the second step, the remaining troops of both armies may move, according to the following rules: </li>
           <li>
             <ul>
-              <li>If none of the moving armies survives the first battle: No troops are moved</li>
-              <li>If one of the moving armies survives the first battle: The surviving army may continue the movement, which can lead to a second battle if the movement leads to an opponents field. Only the surviving troops are moved in this case (although there might be more troops left on the attacking field).</li>
-              <li>If both of the moving armies survive the first battle: No second attack is executed, but movements that don't lead to a battle are executed by the surviving troops (that is the case if troops move to another field that is controlled by the same player)</li>
+              <li>If <const>none</const> of the moving armies survives the first battle: No troops are moved</li>
+              <li>If <const>one</const> of the moving armies survives the first battle: The surviving army may continue the movement, which can lead to a second battle if the movement leads to an opponents field. Only the surviving troops are moved in this case (although there might be more troops left on the attacking field).</li>
+              <li>If <const>both</const> of the moving armies survive the first battle: No second attack is executed, but movements that don't lead to a battle are executed by the surviving troops (that is the case if troops move to another field that is controlled by the same player)</li>
             </ul>
           </li>
         </ul>
@@ -78,7 +88,8 @@
       <span>Expert Rules</span>
     </h1>
     <div class="statement-expert-rules-content">
-      The referee of the project can be found on <a href="https://github.com/tfassbender/codingame_the_art_of_code">GitHub</a>
+      The referee of the project can be found on <a href="https://github.com/tfassbender/codingame_the_art_of_code">GitHub</a>. <br>
+      The UnitTests in src/test/java/com/codingame/game describe most expert rules<br> 
     </div>
   </div>
   <!-- EXAMPLES -->
@@ -103,28 +114,28 @@
     <div class="blk">
       <div class="title">Initial input</div>
       <div class="text">
-        <p><span class="statement-lineno">First line: </span>one integer - the <var>NUMBER_OF_FIELDS</var> in the map.</p>
-        <p><span class="statement-lineno">Next line: </span>one integer - the <var>NUMBER_OF_CONNECTIONS</var> between fields.</p>
-        <p><span class="statement-lineno">Next <var>NUMBER_OF_CONNECTIONS</var> lines: </span>two integers - the <var>SOURCE_ID</var> and the <var>TARGET_ID</var> of the fields that are connected (bidirectional).</p>
-        <p><span class="statement-lineno">Next line: </span>one integer - the <var>NUMBER_OF_REGIONS</var>.</p>
+        <p><span class="statement-lineno">First line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS</var> in the map.</p>
+        <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_CONNECTIONS</var> between fields.</p>
+        <p><span class="statement-lineno">Next <var>NUMBER_OF_CONNECTIONS</var> lines: </span><const>2</const> integers - The <var>SOURCE_ID</var> and the <var>TARGET_ID</var> of the fields that are connected (bidirectional).</p>
+        <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_REGIONS</var>.</p>
         <p><span class="statement-lineno">Next <var>NUMBER_OF_REGIONS</var> inputs: </span></p>
-        <p><span class="statement-lineno">- One line: </span>one integer - the number of <var>REGION_BONUS_TROOPS</var>.</p>
-        <p><span class="statement-lineno">- One line: </span>one integer - the number of <var>NUMBER_OF_FIELDS_IN_REGION</var>.</p>
-        <p><span class="statement-lineno">Next <var>NUBER_OF_FIELDS_IN_REGION</var> lines: </span>one integer - the <var>FIELD_ID</var> of the field that belongs to the region.</p>
-        <p><span class="statement-lineno">Next line: </span>one string - the <var>PRIORITY_HALF_FIELD</var>. Either UPPER or LOWER  - the part of the field (identified by id) in which you have the higher priority to choose a starting field.</p>
+        <p><span class="statement-lineno">- <const>1</const> line: </span><const>1</const> integer - The number of <var>REGION_BONUS_TROOPS</var>.</p>
+        <p><span class="statement-lineno">- <const>1</const> line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS_IN_REGION</var>.</p>
+        <p><span class="statement-lineno">- Next <var>NUBER_OF_FIELDS_IN_REGION</var> lines: </span><const>1</const> integer - The <var>FIELD_ID</var> of the field that belongs to the region.</p>
+        <p><span class="statement-lineno">Next line: </span><const>1</const> string - The <var>PRIORITY_HALF_FIELD</var>. Either <const>UPPER</const> or <const>LOWER</const> - The part of the field (identified by id) in which you have the higher priority to choose a starting field.</p>
       </div>
     </div>
     
     <!-- Protocol block -->
     <div class="blk">
-      <div class="title">Initial input</div>
+      <div class="title">Turn input</div>
       <div class="text">
-        <p><span class="statement-lineno">First line: </span> one string - the <var>TURN_TYPE</var> (CHOOSE_STARTING_FIELDS, DEPLOY_TROOPS or MOVE_TROOPS).</p>
-        <p><span class="statement-lineno">Next line: </span>two integers - the <var>NUMBER_OF_CONTROLLED_FIELDS</var> that are controlled by each player (your input is always first).</p>
-        <p><span class="statement-lineno">Next line: </span>two integers - the <var>NUMBER_OF_TROOPS</var> that each player can deploy (your input is always first; 0 in all turn types but DEPLOY_TROOPS).</p>
-        <p><span class="statement-lineno">Next line: </span>two integers - the <var>NUMBER_OF_FIELD_CHOICES</var> for each player to choose (your input is always first; 0 in all turn types but CHOOSE_STARTING_FIELDS).</p>
-        <p><span class="statement-lineno">Next line: </span>one integer - the <var>NUMBER_OF_FIELDS</var> on the map.</p>
-        <p><span class="statement-lineno">Next <var>NUMBER_OF_FIELDS</var> lines: </span>three integers - the <var>FIELD_ID</var>, the <var>NUMBER_OF_TROOPS</var> on this field, the <var>OWNER</var> of this field (1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral).</p>
+        <p><span class="statement-lineno">First line: </span><const>1</const> string - The <var>TURN_TYPE</var> (<const>CHOOSE_STARTING_FIELDS</const>, <const>DEPLOY_TROOPS</const> or <const>MOVE_TROOPS</const>).</p>
+        <p><span class="statement-lineno">Next line: </span><const>2</const> integers - The <var>NUMBER_OF_CONTROLLED_FIELDS</var> that are controlled by each player (your input is always first).</p>
+        <p><span class="statement-lineno">Next line: </span><const>2</const> integers - The <var>NUMBER_OF_TROOPS</var> that each player can deploy (your input is always first; 0 in all turn types but <const>DEPLOY_TROOPS</const>).</p>
+        <p><span class="statement-lineno">Next line: </span><const>2</const> integers - The <var>NUMBER_OF_FIELD_CHOICES</var> for each player to choose (your input is always first; 0 in all turn types but <const>CHOOSE_STARTING_FIELDS</const>).</p>
+        <p><span class="statement-lineno">Next line: </span><const>1</const> integer - The <var>NUMBER_OF_FIELDS</var> on the map.</p>
+        <p><span class="statement-lineno">Next <var>NUMBER_OF_FIELDS</var> lines: </span><const>3</const> integers - The <var>FIELD_ID</var>, the <var>NUMBER_OF_TROOPS</var> on this field, the <var>OWNER</var> of this field (<const>1</const> if the field is controlled by you; <const>2</const> if it's controlled by the opponent player; <const>0</const> if it's neutral).</p>
       </div>
     </div>
 
@@ -134,11 +145,11 @@
       <div class="text">
         <span class="statement-lineno">A single line</span> containing one of the following actions:
         <ul>
-          <li><var>PICK</var> followed by a field id: you choose the field as starting field and add 1 troop to it</li>
-          <li><var>RANDOM</var>: you choose a random starting field and add 1 troop to it</li>
-          <li><var>DEPLOY</var> followed by a field id and the number of troops to deploy: deploy troops to a field you control</li>
-          <li><var>MOVE</var> followed by a source field id, a target field id and the number of troops: moves troops from source field to target field</li>
-          <li><var>WAIT</var>: does nothing</li>
+          <li><const>PICK</const> Followed by a field id: You choose the field as starting field and add 1 troop to it</li>
+          <li><const>RANDOM</const>: You choose a random starting field and add 1 troop to it</li>
+          <li><const>DEPLOY</const> Followed by a field id and the number of troops to deploy: Deploy troops to a field you control</li>
+          <li><const>MOVE</const> Followed by a source field id, a target field id and the number of troops: Moves troops from source field to target field</li>
+          <li><const>WAIT</const>: Does nothing</li>
         </ul>
         <br>
       </div>
@@ -148,19 +159,8 @@
     <div class="blk">
       <div class="title">Constraints</div>
       <div class="text">
-        Response time per turn ≤ 50ms<br> 
-        Response time for the first turn ≤ 1000ms<br>
-      </div>
-    </div>
-  </div>
-  <!-- STORY -->
-  <div class="statement-story-background">
-    <div class="statement-story-cover" style="background-size: cover; background-image: url(https://www.codingame.com/servlet/fileservlet?id=2210505809934)">
-      <div class="statement-story">
-        <h1>Title</h1>
-        <div class="story-text">Story
-          <br>
-          Totally optional</div>
+        Response time per turn ≤ <const>50</const>ms<br> 
+        Response time for the first turn ≤ <const>1000</const>ms<br>
       </div>
     </div>
   </div>
