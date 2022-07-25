@@ -18,7 +18,7 @@ import com.codingame.game.core.Region;
 import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 
-public class Agent1 {
+public class Boss {
 	
 	private Set<Region> regions;
 	private List<FieldWithConnection> fields;
@@ -31,7 +31,7 @@ public class Agent1 {
 	private List<Action> actions = new ArrayList<Action>();
 	
     public static void main(String[] args) {
-    	Agent1 agent = new Agent1();
+    	Boss agent = new Boss();
         Scanner in = new Scanner(System.in);
 
         agent.firstRead(in);

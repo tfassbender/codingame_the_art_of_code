@@ -313,6 +313,10 @@ public class GameMap {
 		return fields.stream().filter(field -> field.id == id).findFirst();
 	}
 	
+	public Optional<Region> getRegionForFieldById(int fieldId) {
+		return regions.stream().filter(r -> r.fields.stream().anyMatch(f -> f.id == fieldId)).findFirst();
+	}
+	
 	public boolean isFieldsConnected(int sourceId, int targetId) {
 		return connections.stream().anyMatch(pair -> pair.getKey().id == sourceId && pair.getValue().id == targetId || //
 				pair.getKey().id == targetId && pair.getValue().id == sourceId);

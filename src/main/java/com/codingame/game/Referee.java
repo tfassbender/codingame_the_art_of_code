@@ -75,8 +75,20 @@ public class Referee extends AbstractReferee {
 	private void sendInitialInput() {
 		// send a description of the map to both players
 		for (Player player : gameManager.getPlayers()) {
+			// next line: one integer - the NUMBER_OF_REGIONS
+			player.sendInputLine(Integer.toString(map.regions.size()));
+			// next NUMBER_OF_REGIONS inputs:
+			// - one line: two integers - region id and the number of bonus troops for this region
+			for (Region region : map.regions) {
+				player.sendInputLine(Integer.toString(region.id) + " " + Integer.toString(region.bonusTroops));
+			}
+			
 			// first line: one integer - the NUMBER_OF_FIELDS in the map
 			player.sendInputLine(Integer.toString(map.fields.size()));
+			for (Field field : map.fields) {
+				// next NUMBER_OF_FIELDS lines: two integers - the field id and the region id, the field belongs to
+				player.sendInputLine(Integer.toString(field.id) + " " + Integer.toString(map.getRegionForFieldById(field.id).get().id));
+			}
 			
 			// next line: one integer - the NUMBER_OF_CONNECTIONS between fields
 			player.sendInputLine(Integer.toString(map.connections.size()));
@@ -84,21 +96,7 @@ public class Referee extends AbstractReferee {
 				// next NUMBER_OF_CONNECTIONS lines: two integers - the SOURCE_ID and the TARGET_ID of the fields that are connected (bidirectional)
 				player.sendInputLine(connection.getKey().id + " " + connection.getValue().id);
 			}
-			
-			// next line: one integer - the NUMBER_OF_REGIONS
-			player.sendInputLine(Integer.toString(map.regions.size()));
-			// next NUMBER_OF_REGIONS inputs:
-			// - one line: one integer - the number of bonus troops for this region
-			// - one line: one integer - the NUMBER_OF_FIELDS_PER_REGION
-			// - next NUBER_OF_FIELDS_PER_REGION lines: one integer - the id of the field that belongs to the region
-			for (Region region : map.regions) {
-				player.sendInputLine(Integer.toString(region.bonusTroops));
-				player.sendInputLine(Integer.toString(region.fields.size()));
-				for (Field field : region.fields) {
-					player.sendInputLine(Integer.toString(field.id));
-				}
-			}
-			
+						
 			// next line: one string - either UPPER or LOWER - the part of the field (identified by id) in which you have the higher priority to choose a starting field
 			if (gameManager.getPlayers().indexOf(player) == 0) {
 				player.sendInputLine("LOWER");

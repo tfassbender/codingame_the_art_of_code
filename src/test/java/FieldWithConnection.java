@@ -4,7 +4,7 @@ import java.util.List;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.Owner;
 
-public class FieldWithConnection extends Field {
+public class FieldWithConnection extends Field implements Comparable<FieldWithConnection> {
 
 	List<Field> reachable = new ArrayList<Field>();
 
@@ -34,5 +34,10 @@ public class FieldWithConnection extends Field {
 		}
 		
 		return fields;
+	}
+
+	@Override
+	public int compareTo(FieldWithConnection o) {
+		return Integer.compare(id, o.id);
 	}
 }
