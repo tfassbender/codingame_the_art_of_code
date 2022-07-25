@@ -27,6 +27,10 @@ public class StartingFieldChoiceTest {
 	
 	@RepeatedTest(20)
 	public void test_chose_random_starting_fields__no_duplicated_starting_fields() throws Exception {
+		// workaround for codingame build, maybe BeforeEach is not working on the site with repeated test?
+		if (startingFieldChoice == null)
+			setup();
+		
 		List<Pair<Integer, Integer>> startingFields = TestUtils.getFieldPerReflection(startingFieldChoice, "randomStartingFields");
 		List<Integer> flattenedStartingFields = startingFields.stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toList());
 		
