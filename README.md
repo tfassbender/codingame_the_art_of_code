@@ -89,7 +89,7 @@ After all movements are executed the number of deployable troops is calculated a
 - [:heavy_check_mark: Dominik - simple_bot, master] Create a simple bot (for testing)
 - Generate random maps
   - Generate a random, symmetric field graph
-  - Calculate the positions of the random fields on the map
+  - [:hammer_and_wrench: Tobias - map_generator] Calculate the positions of the random fields on the map
 - Create boss bots (not in this repo, so they remain private)
 - [:heavy_check_mark: Tobias - master] Define the Rules (in this .md file)
 - [:heavy_check_mark: Tobias - master] Add the Rules to `config/statement_en.html`
