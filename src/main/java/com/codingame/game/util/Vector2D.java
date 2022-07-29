@@ -65,7 +65,7 @@ public class Vector2D implements Cloneable {
 	public boolean equals(Object obj) {
 		if (obj instanceof Vector2D) {
 			Vector2D v = (Vector2D) obj;
-			return Math.abs(x-v.x) < 1e-8 && Math.abs(y-v.y) < 1e-8;
+			return Math.abs(x - v.x) < 1e-8 && Math.abs(y - v.y) < 1e-8;
 		}
 		return false;
 	}
@@ -96,7 +96,7 @@ public class Vector2D implements Cloneable {
 		if (norm == Integer.MAX_VALUE) {
 			return Math.max(Math.abs(x), Math.abs(y));
 		}
-		return Math.pow(Math.pow(Math.abs(x), norm) + Math.pow(Math.abs(y), norm), 1.0/norm);
+		return Math.pow(Math.pow(Math.abs(x), norm) + Math.pow(Math.abs(y), norm), 1.0 / norm);
 	}
 	
 	/**
@@ -172,9 +172,9 @@ public class Vector2D implements Cloneable {
 	 * 		True if the vectors are linearly dependent. False otherwise.
 	 */
 	public boolean isLinearlyDependent(Vector2D vec) {
-		double t1 = (x == 0 ? 0 : vec.x/x);
-		double t2 = (y == 0 ? 0 : vec.y/y);
-		return Math.abs(t1-t2) < 1e-5 && t1 != 0;//all parameters t are equal and != 0
+		double t1 = (x == 0 ? 0 : vec.x / x);
+		double t2 = (y == 0 ? 0 : vec.y / y);
+		return Math.abs(t1 - t2) < 1e-5 && t1 != 0;//all parameters t are equal and != 0
 	}
 	
 	/**
@@ -237,6 +237,19 @@ public class Vector2D implements Cloneable {
 	 */
 	public double distance(Vector2D p) {
 		return Math.sqrt((this.x - p.x) * (this.x - p.x) + (this.y - p.y) * (this.y - p.y));
+	}
+	
+	/**
+	 * Get the squared distance of this point's position vector to another point's position vector.
+	 * 
+	 * @param p
+	 * 		The second point's position vector.
+	 * 
+	 * @return
+	 * 		The squared distance between the points.
+	 */
+	public double distance2(Vector2D p) {
+		return (this.x - p.x) * (this.x - p.x) + (this.y - p.y) * (this.y - p.y);
 	}
 	
 	/**

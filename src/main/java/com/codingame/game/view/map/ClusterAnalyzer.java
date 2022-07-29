@@ -6,6 +6,9 @@ import java.util.Optional;
 
 import com.codingame.game.util.Vector2D;
 
+/**
+ * Cluster analysis of points using k-means or x-means.
+ */
 public class ClusterAnalyzer {
 	
 	private ClusterAnalyzer() {}
