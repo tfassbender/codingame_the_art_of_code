@@ -11,7 +11,6 @@ import com.codingame.game.view.View;
 public class GraphPlacementTest {
 	
 	private GameMap map;
-	private View view;
 	
 	@BeforeEach
 	public void setup() {
@@ -21,6 +20,9 @@ public class GraphPlacementTest {
 	
 	@Test
 	public void test() {
-		view = new View(null, map);
+		// create a new view, so the field positions are initialized
+		new View(null, map);
+		
+		// no assertions - only for debugg testing
 	}
 }

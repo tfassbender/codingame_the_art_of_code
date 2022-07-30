@@ -56,14 +56,35 @@ public class View {
 	
 	private void calculateFieldPositions(GameMap map) {
 		Set<PositionedField> positionedFields = calculateFieldPositions(map, estimateFieldPositions(map.fields));
-		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(field -> field.field, field -> field.pos()));
+		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(PositionedField::getField, PositionedField::pos));
 	}
 	
 	private Set<PositionedField> calculateFieldPositions(GameMap map, Map<Field, Vector2D> initialPositions) {
+		// normalise the initial positions (remove the offset to the drawing game field)
+		Vector2D offset = new Vector2D(GAME_FIELD_X, GAME_FIELD_Y);
+		initialPositions = initialPositions.entrySet().stream() //
+				.map(entry -> Pair.of(entry.getKey(), entry.getValue().sub(offset))) //
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		
 		MapGraph graph = new MapGraph(map, initialPositions);
 		GraphPlacement<PositionedField> graphPlacement = new GraphPlacement<>(graph);
 		
-		return graphPlacement.positionFields();
+		// configure hyper-parameters of the graph placement algorithm
+		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT);
+		graphPlacement.setIdealSpringLength(150);
+		graphPlacement.setIdealClusterDistance(200);
+		graphPlacement.setDelta(0.15f);
+		graphPlacement.setDeltaCooldown(0.995f);
+		graphPlacement.setRepulsiveForce(0.1f);
+		graphPlacement.setSpringForce(0.1f);
+		graphPlacement.setClusterForce(0.03f);
+		
+		Set<PositionedField> positionedFields = graphPlacement.positionFields();
+		
+		// add the drawing field offset to all fields
+		positionedFields.forEach(field -> field.setPosition(field.pos().add(offset)));
+		
+		return positionedFields;
 	}
 	
 	// **********************************************************************

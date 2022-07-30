@@ -36,6 +36,10 @@ public class PositionedField implements Positioned<Field> {
 		this.position = position;
 	}
 	
+	public Field getField() {
+		return field;
+	}
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(field);

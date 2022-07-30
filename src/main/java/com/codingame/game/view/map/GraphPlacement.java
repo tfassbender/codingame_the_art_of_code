@@ -189,7 +189,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 			return Vector2D.NULL_VEC;
 		}
 		
-		return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce / field1.pos().distance2(field2.pos()));
+		return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce / field1.pos().distance(field2.pos()));
 	}
 	
 	private Vector2D attractiveSpringForceVector(T field1, T field2) {
