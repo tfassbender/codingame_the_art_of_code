@@ -46,4 +46,8 @@ public class Field {
 		
 		return id == ((Field)o).id;
 	}
+	
+	public String toString() {
+		return String.format("Field[%d]", id);
+	}
 }

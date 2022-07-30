@@ -4,22 +4,29 @@ import java.awt.Font;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.codingame.game.Action;
 import com.codingame.game.Player;
 import com.codingame.game.build.RandomUtil;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
+import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
+import com.codingame.game.view.MovementEvents.MovementStep;
+import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.codingame.gameengine.module.entities.Polygon;
+import com.codingame.gameengine.module.entities.SpriteAnimation;
 import com.codingame.gameengine.module.entities.Text;
 import com.codingame.gameengine.module.entities.Text.FontWeight;
 
@@ -40,9 +47,14 @@ public class View {
 	
 	private Map<Field, Vector2D> cachedFieldPositions;
 	private Map<Region, Integer> cachedRegionColors;
+	String[] gunner_left_right_red;
+	String[] gunner_left_right_blue;
 	
 	// fields that has to be kept up to date during the game
 	private Map<Field, Text> fieldText;
+	private Map<Field, Text> deployText;
+	private Map<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>> moveAnimations;
+	private Map<Pair<Field, Field>, Text> moveText;
 	private Text statisticsPlayer1;
 	private Text statisticsPlayer2;
 	
@@ -50,6 +62,12 @@ public class View {
 		this.graphicEntityModule = graphicEntityModule;
 		
 		fieldText = new HashMap<Field, Text>();
+		deployText = new HashMap<Field, Text>();
+		moveAnimations = new HashMap<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>>();
+		moveText = new HashMap<Pair<Field, Field>, Text>();
+		
+		gunner_left_right_blue = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Blue").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Blue_Run.png").split();
+		gunner_left_right_red = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Red").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Red_Run.png").split();
 	}
 	
 	// **********************************************************************
@@ -180,6 +198,9 @@ public class View {
 			boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
 			boolean drawIndirect = directLength > indirectLength && !sameRegion;
 			
+			createMovementAnimationEntity(connection.getKey(), connection.getValue(), pos1, pos2);
+			createMovementAnimationEntity(connection.getValue(), connection.getKey(), pos2, pos1);
+			
 			if (drawIndirect) {
 				drawConnectionLine(pos1, inter1);
 				drawConnectionLine(pos2, inter2);
@@ -188,6 +209,14 @@ public class View {
 				drawConnectionLine(pos1, pos2);
 			}
 		}
+	}
+	
+	private void createMovementAnimationEntity(Field f1, Field f2, Vector2D pos1, Vector2D pos2) {
+		SpriteAnimation animationP1 = graphicEntityModule.createSpriteAnimation().setImages(gunner_left_right_red).setX((int)pos1.x).setY((int)pos1.y).setLoop(true).setAnchor(0.5);
+		SpriteAnimation animationP2 = graphicEntityModule.createSpriteAnimation().setImages(gunner_left_right_blue).setX((int)pos1.x).setY((int)pos1.y).setLoop(true).setAnchor(0.5);
+		animationP1.setDuration(3000);
+		animationP2.setDuration(3000);
+		moveAnimations.put(Pair.of(f1, f2), Pair.of(animationP1, animationP2));
 	}
 	
 	private void drawConnectionLine(Vector2D pos1, Vector2D pos2) {
@@ -235,8 +264,18 @@ public class View {
 					.setY((int) pos.y) //
 					.setAnchor(0.5);
 			
+			Text deployAt = graphicEntityModule.createText() //
+					.setFontSize(fontSize) //
+					.setFontWeight(FontWeight.BOLD) //
+					.setX((int) pos.x) //
+					.setY((int) pos.y-60) //
+					.setAnchor(0.5) //
+					.setFillColor(0x32ff4e) //
+					.setAlpha(0);
+			
 			// store fields, so we can update them later
 			fieldText.put(field, cgText);
+			deployText.put(field, deployAt);
 		}
 		
 		// add per frame content
@@ -534,5 +573,97 @@ public class View {
 			return start1.add(dir1.setLength(dir1.length() * t));
 		}
 	}
+
+	public void animateDeployments(List<Action> actions1, List<Action> actions2) {
+		List<Action> actions = new ArrayList<Action>();
+		
+		actions.addAll(actions1);
+		actions.addAll(actions2);
+		
+		for (Field field : deployText.keySet()) {
+			int deployedTroops = actions.stream().filter(a -> a.getTargetId() == field.id && a.getType() == Action.Type.DEPLOY)
+					.mapToInt(a -> a.getNumTroops()).sum();
+			Text cgText = fieldText.get(field);
+			Text deployAt = deployText.get(field);
+
+			if (deployedTroops > 0) {
+				deployAt.setText("+"+deployedTroops);
+				graphicEntityModule.commitEntityState(0, deployAt);
+				deployAt.setAlpha(1, Curve.EASE_OUT);
+				graphicEntityModule.commitEntityState(1, deployAt);
+			}
+			
+//			deployAt.setText("+"+deployedTroops).setY(cgText.getY()-30, Curve.EASE_IN).setAlpha(0, Curve.EASE_IN);
+//			graphicEntityModule.commitEntityState(1, deployAt);
+		}
+	}
 	
+	public void animateMovements(MovementEvents events, Set<Field> fields) {
+		Set<Pair<Field, Field>> keys = events.getKeys();
+		Map<Field, Vector2D> positions = getPositions(fields);
+		
+		for (Pair<Field, Field> key : keys) {
+			Field f1 = key.getKey();
+			Field f2 = key.getValue(); 
+					
+			Vector2D p1 = positions.get(f1);
+			Vector2D p2 = positions.get(f2);
+
+			List<MovementStep> steps = events.getSteps(f1, f2);
+			
+			Pair<SpriteAnimation, SpriteAnimation> spriteSelection = moveAnimations.get(key);
+			SpriteAnimation troops = steps.get(0).owner == Owner.PLAYER_1 ? spriteSelection.getKey() : spriteSelection.getValue();
+			double stepDuration = 1./steps.size();
+			double t = 0;
+			
+			troops.setAlpha(1, Curve.EASE_OUT).setX((int)p1.x).setY((int)p1.y).reset();
+			graphicEntityModule.commitEntityState(t, troops);
+			
+			for (MovementStep step : steps) {
+				t += stepDuration;
+				boolean lastStep = step == steps.get(steps.size()-1);
+				boolean leftRight = p1.x <= p2.x + 1e-4;
+
+//					troops.reset();
+				
+				switch(step.type) {
+				case Die:
+					troops.setAlpha(0);
+					break;
+				case Fight:
+					// do nothing for now
+					System.err.println("Fight: "+f1.id+" "+f2.id);
+					break;
+				case Forward:
+					if (lastStep) {
+						troops.setX((int)p2.x).setY((int)p2.y);
+					} else {
+						Vector2D dir = p2.sub(p1);
+						Vector2D dest = p1.add(dir.setLength(dir.length()*0.4));
+						troops.setX((int)dest.x).setY((int)dest.y);
+					}
+					break;
+				case Retreat:
+					troops.setX((int)p1.x).setY((int)p1.y);
+					leftRight = !leftRight;
+					break;
+				}
+				
+				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+				
+				graphicEntityModule.commitEntityState(t, troops);
+			}
+		}
+	}
+	
+	public void resetAnimations(TurnType turnType) {
+		if (turnType != TurnType.DEPLOY_TROOPS)
+		for (Field field : fieldText.keySet()) {
+			Text cgText = fieldText.get(field);
+			Text deployAt = deployText.get(field);
+			
+			deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
+			graphicEntityModule.commitEntityState(0.35, deployAt);
+		}
+	}
 }
