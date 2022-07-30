@@ -23,6 +23,7 @@ import com.codingame.game.util.Vector2D;
  * - A constant 'repulsiveForce' as factor for the force that tries to divide the fields from each other (optional)
  * - A constant 'springForce' as factor for the force that tries to gather connected nodes closer to each other (optional)
  * - A constant 'clusterForce' as factor for the force that tries to gather nodes of a cluster closer to each other (optional)
+ * - The 'bounds' in which the nodes have to be arranged (optional; default is no bounds)  
  * 
  *  Outputs:
  *  The positioned nodes as a {@link Set} of {@link Positioned} objects.
@@ -45,13 +46,22 @@ public class GraphPlacement<T> {
 	//************************************************************************
 	
 	private int iterations = 100;
+	
 	private float idealSpringLength = 1f; // ideal distance between two connected nodes
 	private float idealClusterDistance = 1.5f; // ideal distance between two nodes in the same cluster
+	
 	private float delta = 1f; // factor for the change of positions of the nodes
 	private float deltaCooldown = 1f; // factor for the cooldown of delta, so the positions stabilise (must be between 0 and 1)
+	
 	private float repulsiveForce = 1f; // factor for the force that tries to divide the fields from each other
 	private float springForce = 1f; // factor for the force that tries to gather connected nodes closer to each other
 	private float clusterForce = 0.5f; // factor for the force that tries to gather nodes of a cluster closer to each other
+	
+	private boolean useBounds = false;
+	private float xMin = 0;
+	private float yMin = 0;
+	private float xMax = 0;
+	private float yMax = 0;
 	
 	//************************************************************************
 	//*** algorithm
@@ -124,6 +134,26 @@ public class GraphPlacement<T> {
 				
 				delta_t *= deltaCooldown;
 			}
+			
+			if (useBounds) {
+				// move nodes back into the given bounds, if they were moved out of the bounds
+				for (Positioned<T> field : fields) {
+					Vector2D truncated = field.pos();
+					if (field.pos().x < xMin) {
+						truncated.x = xMin;
+					}
+					else if (field.pos().x > xMax) {
+						truncated.x = xMax;
+					}
+					if (field.pos().y < yMin) {
+						truncated.y = yMin;
+					}
+					else if (field.pos().y > yMax) {
+						truncated.y = yMax;
+					}
+					field.setPosition(truncated);
+				}
+			}
 		}
 		
 		return fields;
@@ -187,6 +217,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setIterations(int iterations) {
+		if (iterations < 1) {
+			throw new IllegalArgumentException("Iterations must be at least 1");
+		}
 		this.iterations = iterations;
 	}
 	
@@ -195,6 +228,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setIdealSpringLength(float idealSpringLength) {
+		if (idealSpringLength < 0) {
+			throw new IllegalArgumentException("The ideals spring length cannot be below 0");
+		}
 		this.idealSpringLength = idealSpringLength;
 	}
 	
@@ -203,6 +239,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setIdealClusterDistance(float idealClusterDistance) {
+		if (idealClusterDistance < 0) {
+			throw new IllegalArgumentException("The ideals cluster distance cannot be below 0");
+		}
 		this.idealClusterDistance = idealClusterDistance;
 	}
 	
@@ -211,6 +250,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setDelta(float delta) {
+		if (delta <= 0) {
+			throw new IllegalArgumentException("Delta must be greater than 0");
+		}
 		this.delta = delta;
 	}
 	
@@ -219,6 +261,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setDeltaCooldown(float deltaCooldown) {
+		if (deltaCooldown <= 0 || deltaCooldown > 1) {
+			throw new IllegalArgumentException("The delta cooldown must be between 0 (exclusive) and 1 (inclusive)");
+		}
 		this.deltaCooldown = deltaCooldown;
 	}
 	
@@ -227,6 +272,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setRepulsiveForce(float repulsiveForce) {
+		if (repulsiveForce <= 0) {
+			throw new IllegalArgumentException("The repulsive force must be greater than 0");
+		}
 		this.repulsiveForce = repulsiveForce;
 	}
 	
@@ -235,6 +283,9 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setSpringForce(float springForce) {
+		if (springForce <= 0) {
+			throw new IllegalArgumentException("The spring force must be greater than 0");
+		}
 		this.springForce = springForce;
 	}
 	
@@ -243,6 +294,27 @@ public class GraphPlacement<T> {
 	}
 	
 	public void setClusterForce(float clusterForce) {
+		if (clusterForce <= 0) {
+			throw new IllegalArgumentException("The cluster force must be greater than 0");
+		}
 		this.clusterForce = clusterForce;
+	}
+	
+	public void setBounds(float xMin, float yMin, float xMax, float yMax) {
+		if (xMin >= xMax) {
+			throw new IllegalArgumentException("xMin must be below xMax");
+		}
+		if (yMin >= yMax) {
+			throw new IllegalArgumentException("yMin must be below yMax");
+		}
+		this.xMin = xMin;
+		this.yMin = yMin;
+		this.xMax = xMax;
+		this.yMax = yMax;
+		useBounds = true;
+	}
+	
+	public void resetBounds() {
+		useBounds = false;
 	}
 }
