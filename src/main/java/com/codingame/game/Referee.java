@@ -61,7 +61,7 @@ public class Referee extends AbstractReferee {
 		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
-		view = new View(graphicEntityModule);
+		view = new View(graphicEntityModule, map);
 		view.drawBackground();
 		view.drawPlayerInfos(gameManager.getPlayer(0), gameManager.getPlayer(1));
 		view.drawLegend(map.regions);
@@ -96,7 +96,7 @@ public class Referee extends AbstractReferee {
 				// next NUMBER_OF_CONNECTIONS lines: two integers - the SOURCE_ID and the TARGET_ID of the fields that are connected (bidirectional)
 				player.sendInputLine(connection.getKey().id + " " + connection.getValue().id);
 			}
-						
+			
 			// next line: one string - either UPPER or LOWER - the part of the field (identified by id) in which you have the higher priority to choose a starting field
 			if (gameManager.getPlayers().indexOf(player) == 0) {
 				player.sendInputLine("LOWER");

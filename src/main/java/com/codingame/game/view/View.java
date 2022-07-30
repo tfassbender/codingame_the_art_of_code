@@ -8,15 +8,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.codingame.game.Player;
 import com.codingame.game.build.RandomUtil;
 import com.codingame.game.core.Field;
+import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
+import com.codingame.game.view.map.GraphPlacement;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.codingame.gameengine.module.entities.Polygon;
@@ -46,10 +47,23 @@ public class View {
 	private Text statisticsPlayer1;
 	private Text statisticsPlayer2;
 	
-	public View(GraphicEntityModule graphicEntityModule) {
+	public View(GraphicEntityModule graphicEntityModule, GameMap map) {
 		this.graphicEntityModule = graphicEntityModule;
+		calculateFieldPositions(map);
 		
 		fieldText = new HashMap<Field, Text>();
+	}
+	
+	private void calculateFieldPositions(GameMap map) {
+		Set<PositionedField> positionedFields = calculateFieldPositions(map, estimateFieldPositions(map.fields));
+		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(field -> field.field, field -> field.pos()));
+	}
+	
+	private Set<PositionedField> calculateFieldPositions(GameMap map, Map<Field, Vector2D> initialPositions) {
+		MapGraph graph = new MapGraph(map, initialPositions);
+		GraphPlacement<PositionedField> graphPlacement = new GraphPlacement<>(graph);
+		
+		return graphPlacement.positionFields();
 	}
 	
 	// **********************************************************************
@@ -162,8 +176,7 @@ public class View {
 	}
 	
 	public void drawConnections(Set<Pair<Field, Field>> connections, Set<Region> regions) {
-		Set<Field> fields = connections.stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toSet());
-		Map<Field, Vector2D> positions = getPositions(fields);
+		Map<Field, Vector2D> positions = cachedFieldPositions;
 		
 		for (Pair<Field, Field> connection : connections) {
 			Vector2D pos1 = positions.get(connection.getKey());
@@ -199,7 +212,7 @@ public class View {
 	}
 	
 	public void drawFields(Set<Field> fields) {
-		Map<Field, Vector2D> positions = getPositions(fields);
+		Map<Field, Vector2D> positions = cachedFieldPositions;
 		int fontSize = 40;
 		int fontSizeId = 20;
 		
@@ -296,14 +309,6 @@ public class View {
 		return colors;
 	}
 	
-	private Map<Field, Vector2D> getPositions(Set<Field> fields) {
-		if (cachedFieldPositions == null) {
-			cachedFieldPositions = estimateFieldPositions(fields);
-		}
-		
-		return cachedFieldPositions;
-	}
-	
 	private Map<Region, Integer> getRegionColors(Set<Region> regions) {
 		if (cachedRegionColors == null) {
 			cachedRegionColors = new HashMap<Region, Integer>();
@@ -317,8 +322,7 @@ public class View {
 	}
 	
 	private Map<Region, Polygon> getRegionPolynoms(Set<Region> regions) {
-		Set<Field> fields = regions.stream().flatMap(r -> r.fields.stream()).collect(Collectors.toSet());
-		Map<Field, Vector2D> fieldPositions = getPositions(fields);
+		Map<Field, Vector2D> fieldPositions = cachedFieldPositions;
 		
 		RegionGrid grid = new RegionGrid(regions, fieldPositions);
 		grid.setWidth(GAME_FIELD_WIDTH);
@@ -534,5 +538,4 @@ public class View {
 			return start1.add(dir1.setLength(dir1.length() * t));
 		}
 	}
-	
 }

@@ -28,7 +28,7 @@ import com.codingame.game.util.Vector2D;
  *  Outputs:
  *  The positioned nodes as a {@link Set} of {@link Positioned} objects.
  */
-public class GraphPlacement<T> {
+public class GraphPlacement<T extends Positioned<?>> {
 	
 	//************************************************************************
 	//*** input values
@@ -36,10 +36,10 @@ public class GraphPlacement<T> {
 	
 	// the original graph from the input
 	private Graph<T> graph;
-	private Set<Positioned<T>> fields;
+	private Set<T> fields;
 	
-	private Map<Positioned<T>, Set<Positioned<T>>> connectedFields;
-	private Map<Positioned<T>, Set<Positioned<T>>> connectedClusters;
+	private Map<T, Set<T>> connectedFields;
+	private Map<T, Set<T>> connectedClusters;
 	
 	//************************************************************************
 	//*** parameters
@@ -77,8 +77,8 @@ public class GraphPlacement<T> {
 	
 	private void calculateConnectedFields() {
 		connectedFields = new HashMap<>();
-		for (Positioned<T> field : fields) {
-			for (Positioned<T> other : fields) {
+		for (T field : fields) {
+			for (T other : fields) {
 				if (field != other && graph.isFieldsConnected(field, other)) {
 					connectedFields.computeIfAbsent(field, x -> new HashSet<>()).add(other);
 				}
@@ -87,13 +87,13 @@ public class GraphPlacement<T> {
 	}
 	
 	private void calculateConnectedClusters() {
-		Set<Set<Positioned<T>>> clusters = new HashSet<>();
-		for (Positioned<T> field : fields) {
+		Set<Set<T>> clusters = new HashSet<>();
+		for (T field : fields) {
 			boolean clusterFound = false;
 			
 			// find an existing cluster to add the field
-			for (Set<Positioned<T>> cluster : clusters) {
-				Positioned<T> fieldInCluster = cluster.stream().findFirst().get(); // clusters cannot be empty
+			for (Set<T> cluster : clusters) {
+				T fieldInCluster = cluster.stream().findFirst().get(); // clusters cannot be empty
 				if (graph.isFieldsInSameCluster(field, fieldInCluster)) {
 					cluster.add(field);
 					clusterFound = true;
@@ -102,7 +102,7 @@ public class GraphPlacement<T> {
 			
 			if (!clusterFound) {
 				// create a new cluster
-				Set<Positioned<T>> cluster = new HashSet<>();
+				Set<T> cluster = new HashSet<>();
 				cluster.add(field);
 				clusters.add(cluster);
 			}
@@ -110,25 +110,25 @@ public class GraphPlacement<T> {
 		
 		// map each field to it's cluster
 		connectedClusters = new HashMap<>();
-		for (Set<Positioned<T>> cluster : clusters) {
-			for (Positioned<T> field : cluster) {
+		for (Set<T> cluster : clusters) {
+			for (T field : cluster) {
 				connectedClusters.put(field, cluster);
 			}
 		}
 	}
 	
-	public Set<Positioned<T>> positionFields() {
+	public Set<T> positionFields() {
 		float delta_t = delta;
 		
-		Map<Positioned<T>, Vector2D> displacementForces = new HashMap<>();
+		Map<T, Vector2D> displacementForces = new HashMap<>();
 		for (int i = 0; i < iterations; i++) {
 			// collect all displacement forces, so the fields are not moved within the iteration step 
-			for (Positioned<T> field : fields) {
+			for (T field : fields) {
 				displacementForces.put(field, resultingDisplacementVector(field));
 			}
 			
 			// apply the displacement forces to move the fields
-			for (Positioned<T> field : fields) {
+			for (T field : fields) {
 				Vector2D displacementVector = displacementForces.get(field).mult(delta_t);
 				field.setPosition(field.pos().add(displacementVector));
 				
@@ -137,7 +137,7 @@ public class GraphPlacement<T> {
 			
 			if (useBounds) {
 				// move nodes back into the given bounds, if they were moved out of the bounds
-				for (Positioned<T> field : fields) {
+				for (T field : fields) {
 					Vector2D truncated = field.pos();
 					if (field.pos().x < xMin) {
 						truncated.x = xMin;
@@ -159,23 +159,23 @@ public class GraphPlacement<T> {
 		return fields;
 	}
 	
-	private Vector2D resultingDisplacementVector(Positioned<T> field) {
+	private Vector2D resultingDisplacementVector(T field) {
 		Vector2D resultingDisplacementVector = new Vector2D();
 		
 		// repulsive force between not connected nodes
-		for (Positioned<T> other : fields) {
+		for (T other : fields) {
 			if (field != other && !graph.isFieldsConnected(field, other)) {
 				resultingDisplacementVector = resultingDisplacementVector.add(repulsiveForceVector(field, other));
 			}
 		}
 		
 		// attractive force between connected nodes
-		for (Positioned<T> connected : connectedFields.get(field)) {
+		for (T connected : connectedFields.get(field)) {
 			resultingDisplacementVector = resultingDisplacementVector.add(attractiveSpringForceVector(field, connected));
 		}
 		
 		// attractive force between nodes in a cluster
-		for (Positioned<T> clusterField : connectedClusters.get(field)) {
+		for (T clusterField : connectedClusters.get(field)) {
 			if (field != clusterField) {
 				resultingDisplacementVector = resultingDisplacementVector.add(attractiveClusterForceVector(field, clusterField));
 			}
@@ -184,7 +184,7 @@ public class GraphPlacement<T> {
 		return resultingDisplacementVector;
 	}
 	
-	private Vector2D repulsiveForceVector(Positioned<T> field1, Positioned<T> field2) {
+	private Vector2D repulsiveForceVector(T field1, T field2) {
 		if (graph.isFieldsConnected(field1, field2)) {
 			return Vector2D.NULL_VEC;
 		}
@@ -192,20 +192,20 @@ public class GraphPlacement<T> {
 		return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce / field1.pos().distance2(field2.pos()));
 	}
 	
-	private Vector2D attractiveSpringForceVector(Positioned<T> field1, Positioned<T> field2) {
+	private Vector2D attractiveSpringForceVector(T field1, T field2) {
 		if (!graph.isFieldsConnected(field1, field2)) {
 			return Vector2D.NULL_VEC;
 		}
 		
-		return field2.pos().vectorTo(field1.pos()).mult(springForce * Math.log10(field1.pos().distance(field2.pos())) / idealSpringLength);
+		return field2.pos().vectorTo(field1.pos()).mult(springForce * Math.log10(field1.pos().distance(field2.pos()) / idealSpringLength));
 	}
 	
-	private Vector2D attractiveClusterForceVector(Positioned<T> field1, Positioned<T> field2) {
+	private Vector2D attractiveClusterForceVector(T field1, T field2) {
 		if (!graph.isFieldsInSameCluster(field1, field2)) {
 			return Vector2D.NULL_VEC;
 		}
 		
-		return field2.pos().vectorTo(field1.pos()).mult(clusterForce * Math.log10(field1.pos().distance(field2.pos())) / idealSpringLength);
+		return field2.pos().vectorTo(field1.pos()).mult(clusterForce * Math.log10(field1.pos().distance(field2.pos()) / idealClusterDistance));
 	}
 	
 	//************************************************************************

@@ -2,11 +2,11 @@ package com.codingame.game.view.map;
 
 import java.util.Set;
 
-public interface Graph<T> {
+public interface Graph<T extends Positioned<?>> {
 	
-	public Set<Positioned<T>> getFields();
+	public Set<T> getFields();
 	
-	public boolean isFieldsConnected(Positioned<T> field1, Positioned<T> field2);
+	public boolean isFieldsConnected(T field1, T field2);
 	
-	public boolean isFieldsInSameCluster(Positioned<T> field1, Positioned<T> field2);
+	public boolean isFieldsInSameCluster(T field1, T field2);
 }

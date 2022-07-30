@@ -52,4 +52,9 @@ public class PositionedField implements Positioned<Field> {
 		PositionedField other = (PositionedField) obj;
 		return Objects.equals(field, other.field);
 	}
+	
+	@Override
+	public String toString() {
+		return "PositionedField [field=" + field + ", position=" + position + "]";
+	}
 }
