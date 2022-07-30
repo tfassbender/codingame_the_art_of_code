@@ -13,15 +13,15 @@ public class ClusterAnalyzer {
 	
 	private ClusterAnalyzer() {}
 	
-	public static <T extends Point> List<Cluster<T>> getClusters(List<T> allUnits, int minClusters, int maxClusters, double minDistBetweenCentroids) {
-		List<Cluster<T>> clusters = getClusters(allUnits, minClusters);
+	public static <T extends Positioned<?>> List<Cluster<T>> getClusters(List<T> allPositions, int minClusters, int maxClusters, double minDistBetweenCentroids) {
+		List<Cluster<T>> clusters = getClusters(allPositions, minClusters);
 		boolean changing = true;
 		while (clusters.size() < maxClusters && changing) {
 			changing = false;
 			for (int i = 0; i < clusters.size() && clusters.size() < maxClusters; i++) {
 				Cluster<T> cluster = clusters.get(i);
-				if (cluster.unitsInCluster.size() >= 2) {
-					List<Cluster<T>> splitedCluster = getClusters(cluster.unitsInCluster, 2);
+				if (cluster.entries.size() >= 2) {
+					List<Cluster<T>> splitedCluster = getClusters(cluster.entries, 2);
 					if (splitedCluster.get(0).centroid.distance(splitedCluster.get(1).centroid) > minDistBetweenCentroids) {
 						//found new clusters
 						clusters.remove(i);
@@ -36,15 +36,15 @@ public class ClusterAnalyzer {
 		return clusters;
 	}
 	
-	public static <T extends Point> List<Cluster<T>> getClusters(List<T> allUnits, int numClusters) {
+	public static <T extends Positioned<?>> List<Cluster<T>> getClusters(List<T> allPositions, int numClusters) {
 		List<Cluster<T>> clusters = new ArrayList<Cluster<T>>(numClusters);
 		//initialize
-		if (allUnits.size() < numClusters) {
+		if (allPositions.size() < numClusters) {
 			throw new IllegalArgumentException("Not enough units for the number of clusters");
 		}
 		for (int i = 0; i < numClusters; i++) {
 			Cluster<T> cluster = new Cluster<T>();
-			cluster.centroid = allUnits.get(i).pos();
+			cluster.centroid = allPositions.get(i).pos();
 			clusters.add(cluster);
 		}
 		boolean changing = true;
@@ -56,10 +56,10 @@ public class ClusterAnalyzer {
 				clusters.get(i).clear();
 			}
 			//find the nearest centroid for all T
-			for (T t : allUnits) {
+			for (T t : allPositions) {
 				Optional<Cluster<T>> nearest = clusters.stream().sorted((c1, c2) -> Double.compare(t.pos().distance(c1.centroid), t.pos().distance(c2.centroid))).findFirst();
 				if (nearest.isPresent()) {
-					nearest.get().unitsInCluster.add(t);
+					nearest.get().entries.add(t);
 				}
 				else {
 					throw new IllegalArgumentException("No nearest cluster found");
@@ -68,12 +68,12 @@ public class ClusterAnalyzer {
 			//calculate new centroid as middle of all T in the cluster
 			for (Cluster<T> cluster : clusters) {
 				Vector2D newCentroid = new Vector2D(0, 0);
-				for (T t : cluster.unitsInCluster) {
+				for (T t : cluster.entries) {
 					newCentroid.x += t.pos().x;
 					newCentroid.y += t.pos().y;
 				}
-				newCentroid.x /= cluster.unitsInCluster.size();
-				newCentroid.y /= cluster.unitsInCluster.size();
+				newCentroid.x /= cluster.entries.size();
+				newCentroid.y /= cluster.entries.size();
 				cluster.centroid = newCentroid;
 			}
 			changing = false;

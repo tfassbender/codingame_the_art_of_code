@@ -8,13 +8,13 @@ import com.codingame.game.util.Vector2D;
 public class Cluster<T> {
 	
 	public Vector2D centroid;
-	public List<T> unitsInCluster;
+	public List<T> entries;
 	
 	public Cluster() {
-		unitsInCluster = new ArrayList<T>();
+		entries = new ArrayList<T>();
 	}
 	
 	public void clear() {
-		unitsInCluster.clear();
+		entries.clear();
 	}
 }
