@@ -18,17 +18,29 @@ import com.codingame.game.util.Vector2D;
  * - The number of iterations (optional; default is 100)
  * - The 'idealSpringLength' for two connected nodes (optional)
  * - The 'idealClusterDistance' for two nodes in the same cluster (optional)
+ * - The 'idealNonAdjacentDistance' for two nodes that are not adjacent (optional)
  * - A constant 'delta' that is used as a factor for the change in the position of each node depending on the force (optional)
  * - A constant 'deltaCooldown' that is used as cooldown factor for 'delta' (must be between 0 and 1; optional)
  * - A constant 'repulsiveForce' as factor for the force that tries to divide the fields from each other (optional)
  * - A constant 'springForce' as factor for the force that tries to gather connected nodes closer to each other (optional)
  * - A constant 'clusterForce' as factor for the force that tries to gather nodes of a cluster closer to each other (optional)
- * - The 'bounds' in which the nodes have to be arranged (optional; default is no bounds)  
+ * - The 'bounds' in which the nodes have to be arranged (optional; default is no bounds)
+ * - The 'variant' of the algorithm that is used (optional)
  * 
  *  Outputs:
  *  The positioned nodes as a {@link Set} of {@link Positioned} objects.
  */
 public class GraphPlacement<T extends Positioned<?>> {
+	
+	public enum Variant {
+		SPRING_EMBEDDER, // repulsive force between non adjacent nodes; attractive force between adjacent and cluster nodes
+		FRUCHTERMAN_REINGOLD; // repulsive force between all nodes; attractive force between adjacent and cluster nodes (more based on distances)
+	}
+	
+	private interface VariantForceCalculator<T> {
+		
+		public Vector2D resultingDisplacementVector(T field);
+	}
 	
 	//************************************************************************
 	//*** input values
@@ -49,6 +61,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	
 	private float idealSpringLength = 1f; // ideal distance between two connected nodes
 	private float idealClusterDistance = 1.5f; // ideal distance between two nodes in the same cluster
+	private float idealNonAdjacentDistance = 3f; // ideal distance between two nodes that are not connected
 	
 	private float delta = 1f; // factor for the change of positions of the nodes
 	private float deltaCooldown = 1f; // factor for the cooldown of delta, so the positions stabilise (must be between 0 and 1)
@@ -62,6 +75,9 @@ public class GraphPlacement<T extends Positioned<?>> {
 	private float yMin = 0;
 	private float xMax = 0;
 	private float yMax = 0;
+	
+	private Variant variant = Variant.SPRING_EMBEDDER;
+	private VariantForceCalculator<T> variantImplementation = new SpringEnbedderForceCalculator();
 	
 	//************************************************************************
 	//*** algorithm
@@ -124,7 +140,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 		for (int i = 0; i < iterations; i++) {
 			// collect all displacement forces, so the fields are not moved within the iteration step 
 			for (T field : fields) {
-				displacementForces.put(field, resultingDisplacementVector(field));
+				displacementForces.put(field, variantImplementation.resultingDisplacementVector(field));
 			}
 			
 			// apply the displacement forces to move the fields
@@ -157,55 +173,6 @@ public class GraphPlacement<T extends Positioned<?>> {
 		}
 		
 		return fields;
-	}
-	
-	private Vector2D resultingDisplacementVector(T field) {
-		Vector2D resultingDisplacementVector = new Vector2D();
-		
-		// repulsive force between not connected nodes
-		for (T other : fields) {
-			if (field != other && !graph.isFieldsConnected(field, other)) {
-				resultingDisplacementVector = resultingDisplacementVector.add(repulsiveForceVector(field, other));
-			}
-		}
-		
-		// attractive force between connected nodes
-		for (T connected : connectedFields.get(field)) {
-			resultingDisplacementVector = resultingDisplacementVector.add(attractiveSpringForceVector(field, connected));
-		}
-		
-		// attractive force between nodes in a cluster
-		for (T clusterField : connectedClusters.get(field)) {
-			if (field != clusterField) {
-				resultingDisplacementVector = resultingDisplacementVector.add(attractiveClusterForceVector(field, clusterField));
-			}
-		}
-		
-		return resultingDisplacementVector;
-	}
-	
-	private Vector2D repulsiveForceVector(T field1, T field2) {
-		if (graph.isFieldsConnected(field1, field2)) {
-			return Vector2D.NULL_VEC;
-		}
-		
-		return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce / field1.pos().distance(field2.pos()));
-	}
-	
-	private Vector2D attractiveSpringForceVector(T field1, T field2) {
-		if (!graph.isFieldsConnected(field1, field2)) {
-			return Vector2D.NULL_VEC;
-		}
-		
-		return field2.pos().vectorTo(field1.pos()).mult(springForce * Math.log10(field1.pos().distance(field2.pos()) / idealSpringLength));
-	}
-	
-	private Vector2D attractiveClusterForceVector(T field1, T field2) {
-		if (!graph.isFieldsInSameCluster(field1, field2)) {
-			return Vector2D.NULL_VEC;
-		}
-		
-		return field2.pos().vectorTo(field1.pos()).mult(clusterForce * Math.log10(field1.pos().distance(field2.pos()) / idealClusterDistance));
 	}
 	
 	//************************************************************************
@@ -245,6 +212,17 @@ public class GraphPlacement<T extends Positioned<?>> {
 		this.idealClusterDistance = idealClusterDistance;
 	}
 	
+	public float getIdealNonAdjacentDistance() {
+		return idealNonAdjacentDistance;
+	}
+	
+	public void setIdealNonAdjacentDistance(float idealNonAdjacentDistance) {
+		if (idealNonAdjacentDistance < 0) {
+			throw new IllegalArgumentException("The ideals non-adjacent distance cannot be below 0");
+		}
+		this.idealNonAdjacentDistance = idealNonAdjacentDistance;
+	}
+	
 	public float getDelta() {
 		return delta;
 	}
@@ -272,7 +250,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	}
 	
 	public void setRepulsiveForce(float repulsiveForce) {
-		if (repulsiveForce <= 0) {
+		if (repulsiveForce < 0) {
 			throw new IllegalArgumentException("The repulsive force must be greater than 0");
 		}
 		this.repulsiveForce = repulsiveForce;
@@ -283,7 +261,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	}
 	
 	public void setSpringForce(float springForce) {
-		if (springForce <= 0) {
+		if (springForce < 0) {
 			throw new IllegalArgumentException("The spring force must be greater than 0");
 		}
 		this.springForce = springForce;
@@ -294,7 +272,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	}
 	
 	public void setClusterForce(float clusterForce) {
-		if (clusterForce <= 0) {
+		if (clusterForce < 0) {
 			throw new IllegalArgumentException("The cluster force must be greater than 0");
 		}
 		this.clusterForce = clusterForce;
@@ -316,5 +294,109 @@ public class GraphPlacement<T extends Positioned<?>> {
 	
 	public void resetBounds() {
 		useBounds = false;
+	}
+	
+	public Variant getVariant() {
+		return variant;
+	}
+	
+	public void setVariant(Variant variant) {
+		this.variant = variant;
+		switch (variant) {
+			case SPRING_EMBEDDER:
+				variantImplementation = new SpringEnbedderForceCalculator();
+				break;
+			case FRUCHTERMAN_REINGOLD:
+				variantImplementation = new FruchtermanReingoldForceCalculator();
+				break;
+			default:
+				throw new IllegalArgumentException("Unsupported variant type: " + variant);
+		}
+	}
+	
+	//************************************************************************
+	//*** implementations of variants
+	//************************************************************************
+	
+	private class SpringEnbedderForceCalculator implements VariantForceCalculator<T> {
+		
+		@Override
+		public Vector2D resultingDisplacementVector(T field) {
+			Vector2D resultingDisplacementVector = new Vector2D();
+			
+			// repulsive force between not connected nodes
+			for (T other : fields) {
+				if (field != other && !graph.isFieldsConnected(field, other)) {
+					resultingDisplacementVector = resultingDisplacementVector.add(repulsiveForceVector(field, other));
+				}
+			}
+			
+			// attractive force between connected nodes
+			for (T connected : connectedFields.get(field)) {
+				resultingDisplacementVector = resultingDisplacementVector.add(attractiveSpringForceVector(field, connected));
+			}
+			
+			// attractive force between nodes in a cluster
+			for (T clusterField : connectedClusters.get(field)) {
+				if (field != clusterField) {
+					resultingDisplacementVector = resultingDisplacementVector.add(attractiveClusterForceVector(field, clusterField));
+				}
+			}
+			
+			return resultingDisplacementVector;
+		}
+		
+		private Vector2D repulsiveForceVector(T field1, T field2) {
+			return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce / field1.pos().distance(field2.pos()));
+		}
+		
+		private Vector2D attractiveSpringForceVector(T field1, T field2) {
+			return field2.pos().vectorTo(field1.pos()).mult(springForce * Math.log10(field1.pos().distance(field2.pos()) / idealSpringLength));
+		}
+		
+		private Vector2D attractiveClusterForceVector(T field1, T field2) {
+			return field2.pos().vectorTo(field1.pos()).mult(clusterForce * Math.log10(field1.pos().distance(field2.pos()) / idealClusterDistance));
+		}
+	}
+	
+	private class FruchtermanReingoldForceCalculator implements VariantForceCalculator<T> {
+		
+		@Override
+		public Vector2D resultingDisplacementVector(T field) {
+			Vector2D resultingDisplacementVector = new Vector2D();
+			
+			// repulsive force between all nodes
+			for (T other : fields) {
+				if (field != other) {
+					resultingDisplacementVector = resultingDisplacementVector.add(repulsiveForceVector(field, other));
+				}
+			}
+			
+			// attractive force between connected nodes
+			for (T connected : connectedFields.get(field)) {
+				resultingDisplacementVector = resultingDisplacementVector.add(attractiveSpringForceVector(field, connected));
+			}
+			
+			// attractive force between nodes in a cluster
+			for (T clusterField : connectedClusters.get(field)) {
+				if (field != clusterField) {
+					resultingDisplacementVector = resultingDisplacementVector.add(attractiveClusterForceVector(field, clusterField));
+				}
+			}
+			
+			return resultingDisplacementVector;
+		}
+		
+		private Vector2D repulsiveForceVector(T field1, T field2) {
+			return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce * idealNonAdjacentDistance * idealNonAdjacentDistance / field1.pos().distance(field2.pos()));
+		}
+		
+		private Vector2D attractiveSpringForceVector(T field1, T field2) {
+			return field2.pos().vectorTo(field1.pos()).mult(springForce * field1.pos().distance2(field2.pos()) / idealSpringLength);
+		}
+		
+		private Vector2D attractiveClusterForceVector(T field1, T field2) {
+			return field2.pos().vectorTo(field1.pos()).mult(clusterForce * field1.pos().distance2(field2.pos()) / idealClusterDistance);
+		}
 	}
 }

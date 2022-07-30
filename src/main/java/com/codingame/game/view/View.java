@@ -18,6 +18,7 @@ import com.codingame.game.core.Region;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.map.GraphPlacement;
+import com.codingame.game.view.map.GraphPlacement.Variant;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.codingame.gameengine.module.entities.Polygon;
@@ -70,14 +71,16 @@ public class View {
 		GraphPlacement<PositionedField> graphPlacement = new GraphPlacement<>(graph);
 		
 		// configure hyper-parameters of the graph placement algorithm
+		graphPlacement.setVariant(Variant.FRUCHTERMAN_REINGOLD);
 		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT);
 		graphPlacement.setIdealSpringLength(150);
 		graphPlacement.setIdealClusterDistance(200);
+		graphPlacement.setIdealNonAdjacentDistance(300);
 		graphPlacement.setDelta(0.15f);
 		graphPlacement.setDeltaCooldown(0.995f);
 		graphPlacement.setRepulsiveForce(0.1f);
 		graphPlacement.setSpringForce(0.1f);
-		graphPlacement.setClusterForce(0.03f);
+		graphPlacement.setClusterForce(0f);
 		
 		Set<PositionedField> positionedFields = graphPlacement.positionFields();
 		
