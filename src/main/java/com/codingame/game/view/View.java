@@ -81,6 +81,7 @@ public class View {
 		graphPlacement.setRepulsiveForce(100f);
 		graphPlacement.setSpringForce(50f);
 		graphPlacement.setClusterForce(50f);
+		//graphPlacement.setMaxForceFactor(1000);
 		
 		Set<PositionedField> positionedFields = graphPlacement.positionFields();
 		

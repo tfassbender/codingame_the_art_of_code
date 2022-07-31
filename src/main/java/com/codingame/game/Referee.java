@@ -8,8 +8,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.codingame.game.Action.Type;
+import com.codingame.game.build.MapGenerator;
 import com.codingame.game.build.RandomUtil;
-import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
@@ -57,8 +57,8 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50);
 		
-		//		map = MapGenerator.generateMap();
-		map = new StaticMapGenerator().createMapTwoRegions();
+		map = MapGenerator.generateMap();
+		//		map = new StaticMapGenerator().createMapTwoRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
 		view = new View(graphicEntityModule, map);
