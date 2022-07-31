@@ -15,11 +15,11 @@ public class GraphPlacementTest {
 	@BeforeEach
 	public void setup() {
 		RandomUtil.init(42);
-		map = new StaticMapGenerator().createMapOneRegion();
+		map = new StaticMapGenerator().createMapFiveRegions();
 	}
 	
 	@Test
-	public void test() {
+	public void test_debug() {
 		// create a new view, so the field positions are initialized
 		new View(null, map);
 		

@@ -24,6 +24,8 @@ import com.codingame.game.util.Vector2D;
  * - A constant 'repulsiveForce' as factor for the force that tries to divide the fields from each other (optional)
  * - A constant 'springForce' as factor for the force that tries to gather connected nodes closer to each other (optional)
  * - A constant 'clusterForce' as factor for the force that tries to gather nodes of a cluster closer to each other (optional)
+ * - A constant 'maxForceFactor' as the maximum force that can be applied to a repulsive or attractive force vector in one step 
+ *   of the iteration (1 means the distance between two nodes; optional)
  * - The 'bounds' in which the nodes have to be arranged (optional; default is no bounds)
  * - The 'variant' of the algorithm that is used (optional)
  * 
@@ -69,6 +71,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	private float repulsiveForce = 1f; // factor for the force that tries to divide the fields from each other
 	private float springForce = 1f; // factor for the force that tries to gather connected nodes closer to each other
 	private float clusterForce = 0.5f; // factor for the force that tries to gather nodes of a cluster closer to each other
+	private float maxForceFactor = Float.MAX_VALUE; // the maximum force that can be applied to a repulsive or attractive force vector in one iteration step (1 means the distance between two nodes)
 	
 	private boolean useBounds = false;
 	private float xMin = 0;
@@ -251,7 +254,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	
 	public void setRepulsiveForce(float repulsiveForce) {
 		if (repulsiveForce < 0) {
-			throw new IllegalArgumentException("The repulsive force must be greater than 0");
+			throw new IllegalArgumentException("The repulsive force must be greater than or equal to 0");
 		}
 		this.repulsiveForce = repulsiveForce;
 	}
@@ -262,7 +265,7 @@ public class GraphPlacement<T extends Positioned<?>> {
 	
 	public void setSpringForce(float springForce) {
 		if (springForce < 0) {
-			throw new IllegalArgumentException("The spring force must be greater than 0");
+			throw new IllegalArgumentException("The spring force must be greater than or equal to 0");
 		}
 		this.springForce = springForce;
 	}
@@ -273,9 +276,20 @@ public class GraphPlacement<T extends Positioned<?>> {
 	
 	public void setClusterForce(float clusterForce) {
 		if (clusterForce < 0) {
-			throw new IllegalArgumentException("The cluster force must be greater than 0");
+			throw new IllegalArgumentException("The cluster force must be greater than or equal to 0");
 		}
 		this.clusterForce = clusterForce;
+	}
+	
+	public float getMaxForceFactor() {
+		return maxForceFactor;
+	}
+	
+	public void setMaxForceFactor(float maxForceFactor) {
+		if (maxForceFactor <= 0) {
+			throw new IllegalArgumentException("The max force factor must be greater than 0");
+		}
+		this.maxForceFactor = maxForceFactor;
 	}
 	
 	public void setBounds(float xMin, float yMin, float xMax, float yMax) {
@@ -347,15 +361,21 @@ public class GraphPlacement<T extends Positioned<?>> {
 		}
 		
 		private Vector2D repulsiveForceVector(T field1, T field2) {
-			return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce / field1.pos().distance(field2.pos()));
+			double forceFactor = repulsiveForce / field1.pos().distance(field2.pos());
+			forceFactor = truncateForceFactor(forceFactor);
+			return field2.pos().vectorTo(field1.pos()).normalize().mult(forceFactor);
 		}
 		
 		private Vector2D attractiveSpringForceVector(T field1, T field2) {
-			return field2.pos().vectorTo(field1.pos()).mult(springForce * Math.log10(field1.pos().distance(field2.pos()) / idealSpringLength));
+			double forceFactor = springForce * Math.log10(field1.pos().distance(field2.pos()) / idealSpringLength);
+			forceFactor = truncateForceFactor(forceFactor);
+			return field1.pos().vectorTo(field2.pos()).normalize().mult(forceFactor);
 		}
 		
 		private Vector2D attractiveClusterForceVector(T field1, T field2) {
-			return field2.pos().vectorTo(field1.pos()).mult(clusterForce * Math.log10(field1.pos().distance(field2.pos()) / idealClusterDistance));
+			double forceFactor = clusterForce * Math.log10(field1.pos().distance(field2.pos()) / idealClusterDistance);
+			forceFactor = truncateForceFactor(forceFactor);
+			return field1.pos().vectorTo(field2.pos()).normalize().mult(forceFactor);
 		}
 	}
 	
@@ -388,15 +408,33 @@ public class GraphPlacement<T extends Positioned<?>> {
 		}
 		
 		private Vector2D repulsiveForceVector(T field1, T field2) {
-			return field1.pos().vectorTo(field2.pos()).mult(repulsiveForce * idealNonAdjacentDistance * idealNonAdjacentDistance / field1.pos().distance(field2.pos()));
+			double forceFactor = repulsiveForce * idealNonAdjacentDistance * idealNonAdjacentDistance / field1.pos().distance(field2.pos());
+			forceFactor = truncateForceFactor(forceFactor);
+			return field2.pos().vectorTo(field1.pos()).normalize().mult(forceFactor);
 		}
 		
 		private Vector2D attractiveSpringForceVector(T field1, T field2) {
-			return field2.pos().vectorTo(field1.pos()).mult(springForce * field1.pos().distance2(field2.pos()) / idealSpringLength);
+			double forceFactor = springForce * field1.pos().distance2(field2.pos()) / idealSpringLength;
+			forceFactor = truncateForceFactor(forceFactor);
+			return field1.pos().vectorTo(field2.pos()).normalize().mult(forceFactor);
 		}
 		
 		private Vector2D attractiveClusterForceVector(T field1, T field2) {
-			return field2.pos().vectorTo(field1.pos()).mult(clusterForce * field1.pos().distance2(field2.pos()) / idealClusterDistance);
+			double forceFactor = clusterForce * field1.pos().distance2(field2.pos()) / idealClusterDistance;
+			forceFactor = truncateForceFactor(forceFactor);
+			return field1.pos().vectorTo(field2.pos()).normalize().mult(forceFactor);
 		}
+	}
+	
+	private double truncateForceFactor(double forceFactor) {
+		if (Math.abs(forceFactor) > maxForceFactor || forceFactor == Float.NaN) {
+			if (forceFactor > maxForceFactor) {
+				forceFactor = maxForceFactor;
+			}
+			else if (forceFactor < -maxForceFactor) {
+				forceFactor = -maxForceFactor;
+			}
+		}
+		return forceFactor;
 	}
 }

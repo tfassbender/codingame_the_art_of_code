@@ -227,6 +227,16 @@ public class Vector2D implements Cloneable {
 	}
 	
 	/**
+	 * Normalizes this vector (sets the length to 1)
+	 * 
+	 * @return
+	 * 		The new vector with the same direction and a length of 1.
+	 */
+	public Vector2D normalize() {
+		return setLength(1);
+	}
+	
+	/**
 	 * Get the distance of this point's position vector to another point's position vector.
 	 * 
 	 * @param p

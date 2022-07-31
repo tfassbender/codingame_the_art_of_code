@@ -62,7 +62,7 @@ public class View {
 	
 	private Set<PositionedField> calculateFieldPositions(GameMap map, Map<Field, Vector2D> initialPositions) {
 		// normalise the initial positions (remove the offset to the drawing game field)
-		Vector2D offset = new Vector2D(GAME_FIELD_X, GAME_FIELD_Y);
+		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // -50 so the fields are not pushed to the edge completely
 		initialPositions = initialPositions.entrySet().stream() //
 				.map(entry -> Pair.of(entry.getKey(), entry.getValue().sub(offset))) //
 				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
@@ -71,16 +71,16 @@ public class View {
 		GraphPlacement<PositionedField> graphPlacement = new GraphPlacement<>(graph);
 		
 		// configure hyper-parameters of the graph placement algorithm
-		graphPlacement.setVariant(Variant.FRUCHTERMAN_REINGOLD);
-		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT);
-		graphPlacement.setIdealSpringLength(150);
+		graphPlacement.setVariant(Variant.SPRING_EMBEDDER);
+		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH - 100, GAME_FIELD_HEIGHT - 100);
+		graphPlacement.setIdealSpringLength(250);
 		graphPlacement.setIdealClusterDistance(200);
-		graphPlacement.setIdealNonAdjacentDistance(300);
-		graphPlacement.setDelta(0.15f);
-		graphPlacement.setDeltaCooldown(0.995f);
-		graphPlacement.setRepulsiveForce(0.1f);
-		graphPlacement.setSpringForce(0.1f);
-		graphPlacement.setClusterForce(0f);
+		graphPlacement.setIdealNonAdjacentDistance(400);
+		graphPlacement.setDelta(1f);
+		graphPlacement.setDeltaCooldown(0.99f);
+		graphPlacement.setRepulsiveForce(100f);
+		graphPlacement.setSpringForce(50f);
+		graphPlacement.setClusterForce(50f);
 		
 		Set<PositionedField> positionedFields = graphPlacement.positionFields();
 		
@@ -212,17 +212,19 @@ public class View {
 			Vector2D inter1 = findClosestBorderIntersection(pos1, dir);
 			Vector2D inter2 = findClosestBorderIntersection(pos2, dir);
 			
-			double directLength = pos1.distance(pos2);
-			double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
-			boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
-			boolean drawIndirect = directLength > indirectLength && !sameRegion;
-			
-			if (drawIndirect) {
-				drawConnectionLine(pos1, inter1);
-				drawConnectionLine(pos2, inter2);
-			}
-			else {
-				drawConnectionLine(pos1, pos2);
+			if (inter1 != null && inter2 != null) { // TODO the border intersection vectors are not always found when using the graph placement algorithm
+				double directLength = pos1.distance(pos2);
+				double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
+				boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
+				boolean drawIndirect = directLength > indirectLength && !sameRegion;
+				
+				if (drawIndirect) {
+					drawConnectionLine(pos1, inter1);
+					drawConnectionLine(pos2, inter2);
+				}
+				else {
+					drawConnectionLine(pos1, pos2);
+				}
 			}
 		}
 	}
