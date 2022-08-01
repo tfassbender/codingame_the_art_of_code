@@ -9,6 +9,7 @@ import com.codingame.game.Action;
 import com.codingame.game.Action.Type;
 import com.codingame.game.util.Pair;
 import com.codingame.game.view.MovementEvents;
+import com.codingame.game.view.MovementEvents.MovementStep;
 import com.codingame.game.view.MovementEvents.MovementType;
 
 /**
@@ -119,8 +120,10 @@ public class GameMap {
 				
 				moveEvents.addStep(field1, field12, attackingTroops1, MovementType.Forward, action1.getOwner());
 				moveEvents.addStep(field2, field22, attackingTroops2, MovementType.Forward, action2.getOwner());
-				moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Fight, action1.getOwner());
-				moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Fight, action2.getOwner());
+//				moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Fight, action1.getOwner());
+//				moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Fight, action2.getOwner());
+				moveEvents.addFight(field1, field12, leftAttackingTroops1, action1.getOwner(), //
+						field2, field22, leftAttackingTroops2, action2.getOwner());
 				
 				if (leftAttackingTroops1 == 0) {
 					moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Die, action1.getOwner());

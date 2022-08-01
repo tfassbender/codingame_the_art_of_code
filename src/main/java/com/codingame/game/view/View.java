@@ -22,6 +22,7 @@ import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.MovementEvents.MovementStep;
+import com.codingame.game.view.MovementEvents.MovementType;
 import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
@@ -217,6 +218,10 @@ public class View {
 		animationP1.setDuration(3000);
 		animationP2.setDuration(3000);
 		moveAnimations.put(Pair.of(f1, f2), Pair.of(animationP1, animationP2));
+		Text text = graphicEntityModule.createText();
+		text.setAnchor(0.5);
+		text.setFontSize(20);
+		moveText.put(Pair.of(f1, f2), text);
 	}
 	
 	private void drawConnectionLine(Vector2D pos1, Vector2D pos2) {
@@ -612,11 +617,15 @@ public class View {
 			List<MovementStep> steps = events.getSteps(f1, f2);
 			
 			Pair<SpriteAnimation, SpriteAnimation> spriteSelection = moveAnimations.get(key);
+			Text troopText = moveText.get(key);
 			SpriteAnimation troops = steps.get(0).owner == Owner.PLAYER_1 ? spriteSelection.getKey() : spriteSelection.getValue();
 			double stepDuration = 1./steps.size();
 			double t = 0;
 			
-			troops.setAlpha(1, Curve.EASE_OUT).setX((int)p1.x).setY((int)p1.y).reset();
+			troopText.setText(steps.get(0).units+"").setX((int)p1.x).setY((int)p1.y+30).setAlpha(1);
+			graphicEntityModule.commitEntityState(t, troopText);
+			
+			troops.setAlpha(1, Curve.IMMEDIATE).setX((int)p1.x).setY((int)p1.y).reset();
 			graphicEntityModule.commitEntityState(t, troops);
 			
 			for (MovementStep step : steps) {
@@ -624,42 +633,63 @@ public class View {
 				boolean lastStep = step == steps.get(steps.size()-1);
 				boolean leftRight = p1.x <= p2.x + 1e-4;
 
+				if (step.type == MovementType.Retreat)
+					leftRight = !leftRight;
+				
 //					troops.reset();
+				
+				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
 				
 				switch(step.type) {
 				case Die:
 					troops.setAlpha(0);
+					troopText.setAlpha(0);
 					break;
 				case Fight:
 					// do nothing for now
 					System.err.println("Fight: "+f1.id+" "+f2.id);
+					// add shooting animation
+					if (step.fightWithMovement != null) {
+						Vector2D shootAt = estimateFightPosition(positions, step.fightWithMovement.getKey(), step.fightWithMovement.getValue());
+						Circle bullet = graphicEntityModule.createCircle();
+						bullet.setX(troops.getX()).setY(troops.getY()).setRadius(5).setFillColor(0xFFF000);
+						graphicEntityModule.commitEntityState(t, bullet);
+						bullet.setX((int)shootAt.x).setY((int)shootAt.y);
+						graphicEntityModule.commitEntityState(t+stepDuration-0.01, bullet);
+						bullet.setAlpha(0, Curve.IMMEDIATE);
+						graphicEntityModule.commitEntityState(1, bullet);
+					}
 					break;
 				case Forward:
 					if (lastStep) {
 						troops.setX((int)p2.x).setY((int)p2.y);
 					} else {
-						Vector2D dir = p2.sub(p1);
-						Vector2D dest = p1.add(dir.setLength(dir.length()*0.4));
+						Vector2D dest = estimateFightPosition(positions, f1, f2);
 						troops.setX((int)dest.x).setY((int)dest.y);
 					}
 					break;
 				case Retreat:
 					troops.setX((int)p1.x).setY((int)p1.y);
-					leftRight = !leftRight;
 					break;
 				}
 				
-				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+				troopText.setX(troops.getX()).setY(troops.getY()+30).setText(step.units+"");
 				
-				graphicEntityModule.commitEntityState(t, troops);
+				graphicEntityModule.commitEntityState(t, troops, troopText);
 			}
 		}
+	}
+	
+	private Vector2D estimateFightPosition(Map<Field, Vector2D> fieldPositions, Field from, Field to) {
+		Vector2D v1 = fieldPositions.get(from);
+		Vector2D v2 = fieldPositions.get(to);
+		
+		return v1.add(v1.vectorTo(v2).mult(0.4));
 	}
 	
 	public void resetAnimations(TurnType turnType) {
 		if (turnType != TurnType.DEPLOY_TROOPS)
 		for (Field field : fieldText.keySet()) {
-			Text cgText = fieldText.get(field);
 			Text deployAt = deployText.get(field);
 			
 			deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
