@@ -9,21 +9,28 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Region;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
+import com.codingame.game.view.PositionedField;
 import com.codingame.game.view.View;
+import com.codingame.game.view.map.Cluster;
+import com.codingame.game.view.map.ClusterAnalyzer;
 
 /**
  * Generates a random map on which the game is played.
  */
 public class MapGenerator {
 	
-	public static final int NUM_FIELDS_MIN = 10;
-	public static final int NUM_FIELDS_MAX = 30;
+	private static final float FIELD_WIDTH = View.GAME_FIELD_WIDTH - 100; // -100 so the fields are not pushed to the edge completely
+	private static final float FIELD_HEIGHT = View.GAME_FIELD_HEIGHT - 100; // -100 so the fields are not pushed to the edge completely
+	
+	private static final int NUM_FIELDS_MIN = 10;
+	private static final int NUM_FIELDS_MAX = 30;
 	
 	private static final int NUM_CONNECTIONS_PER_FIELD_MIN = 2;
 	private static final int NUM_CONNECTIONS_PER_FIELD_MAX = 4; // can be more, if other fields connect to a field after it got processed or if groups need to be connected
@@ -31,10 +38,19 @@ public class MapGenerator {
 	private static final int NUM_CONNECTIONS_BETWEEN_DIVIDED_GROUPS_MIN = 1;
 	private static final int NUM_CONNECTIONS_BETWEEN_DIVIDED_GROUPS_MAX = 2;
 	
-	private static final float FIELD_WIDTH = View.GAME_FIELD_WIDTH - 100; // -100 so the fields are not pushed to the edge completely
-	private static final float FIELD_HEIGHT = View.GAME_FIELD_HEIGHT - 100; // -100 so the fields are not pushed to the edge completely
+	private static final int NUM_CONNECTIONS_BETWEEN_SIDES_MIN = 2;
 	
-	public static GameMap generateMap() {
+	private static final int NUM_REGIONS_MIN = 4;
+	private static final int NUM_REGIONS_MAX = 8;
+	
+	private static final float MIN_DISTANCE_BETWEEN_REGION_CENTERS = 300;
+	
+	private static final float BONUS_TROOPS_PER_FIELD_IN_REGION = 0.34f; // 1 troop per three fields
+	private static final int BONUS_TROOPS_RANDOM = 2;
+	private static final int BONUS_TROOPS_MIN = 2;
+	private static final int BONUS_TROOPS_MAX = 10;
+	
+	public static Pair<GameMap, Map<Field, Vector2D>> generateMap() {
 		// until we can generate maps by our self we use random static
 		// return selectRandomStaticMap();
 		
@@ -89,7 +105,7 @@ public class MapGenerator {
 	 * 5. Mirror the graph (so it's symmetric)
 	 * 6. Create connections between the fields on both sides (where the chance to be connected is proportionately to the distance between the fields)
 	 */
-	private GameMap generateRandomMap() {
+	private Pair<GameMap, Map<Field, Vector2D>> generateRandomMap() {
 		chooseNumberOfFields();
 		positionFields();
 		connectFields();
@@ -99,20 +115,23 @@ public class MapGenerator {
 			connectGroups(dividedFieldGroups.get());
 		}
 		
-		//TODO step 4
+		chooseRegions();
+		mirrorGraph();
+		connectSides();
 		
-		return null;
+		return Pair.of(buildGameMap(), positions);
 	}
 	
 	private void chooseNumberOfFields() {
 		numFields = random.nextInt(NUM_FIELDS_MAX - NUM_FIELDS_MIN) + NUM_FIELDS_MIN;
-		for (int i = 0; i < numFields; i++) {
-			fields.add(new Field(i));
-		}
 		
 		// ensure that the number of fields is even (so the map is symmetric)
 		if (numFields % 2 == 1) {
 			numFields++;
+		}
+		
+		for (int i = 0; i < numFields / 2; i++) {
+			fields.add(new Field(i));
 		}
 	}
 	
@@ -139,7 +158,6 @@ public class MapGenerator {
 					if (random.nextFloat() > relativeDistance) { // chance to be connected is proportionately to the distance between the fields
 						numConnections++;
 						
-						// add the connections bidirectional
 						connectFields(field, other);
 						
 						if (numConnections == numTargetConnections) {
@@ -221,20 +239,116 @@ public class MapGenerator {
 							.flatMap(field1 -> group2.stream().map(field2 -> Pair.of(field1, field2))) //
 							.collect(Collectors.toSet());
 					
-					// connect the nearest fields of the groups
-					possibleConnections.stream() //
-							.sorted(Comparator.comparing(pair -> positions.get(pair.getKey()).distance(positions.get(pair.getValue())))) //
-							.limit(numConnectionsToAdd) //
-							.forEach(pair -> connectFields(pair.getKey(), pair.getValue()));
+					connectNearestFields(numConnectionsToAdd, possibleConnections);
 				}
 			}
 		}
+	}
+	
+	private void chooseRegions() {
+		List<PositionedField> positionedFields = fields.stream()//
+				.map(field -> new PositionedField(field, positions.get(field))) //
+				.collect(Collectors.toList());
+		
+		// divide the cluster into half the number of regions, because it is mirrored afterwards
+		List<Cluster<PositionedField>> clusters = ClusterAnalyzer.getClusters(positionedFields, NUM_REGIONS_MIN / 2, NUM_REGIONS_MAX / 2, //
+				MIN_DISTANCE_BETWEEN_REGION_CENTERS);
+		
+		for (Cluster<PositionedField> cluster : clusters) {
+			Set<Field> fieldsInCluster = cluster.entries.stream() //
+					.map(PositionedField::getField) //
+					.collect(Collectors.toSet());
+			
+			Region region = new Region(fieldsInCluster, calculateBonusTroopsForRegion(fieldsInCluster));
+			
+			regions.add(region);
+		}
+	}
+	
+	private int calculateBonusTroopsForRegion(Set<Field> fieldsInCluster) {
+		int bonusTroops = (int) (fieldsInCluster.size() * BONUS_TROOPS_PER_FIELD_IN_REGION) //
+				+ random.nextInt(BONUS_TROOPS_RANDOM * 2) - BONUS_TROOPS_RANDOM;
+		
+		bonusTroops = Math.max(BONUS_TROOPS_MIN, Math.min(BONUS_TROOPS_MAX, bonusTroops));
+		
+		return bonusTroops;
+	}
+	
+	private void mirrorGraph() {
+		// mirror all fields
+		Map<Field, Vector2D> mirroredFields = new HashMap<>();
+		int numHalfFields = numFields / 2;
+		for (Field field : fields) {
+			Vector2D position = positions.get(field);
+			Vector2D mirroredPosition = new Vector2D(position.x, 2 * FIELD_WIDTH - position.y); // mirror on the right side of the map-rectangle
+			Field mirroredField = new Field(numHalfFields + field.id);
+			mirroredFields.put(mirroredField, mirroredPosition);
+		}
+		fields.addAll(mirroredFields.keySet());
+		
+		// sort the fields by id, because the added mirrored fields came from an unsorted set
+		fields.sort(Comparator.comparing(field -> field.id));
+		
+		// add the mirrored fields to new regions, so the regions are mirrored too
+		List<Region> mirroredRegions = new ArrayList<>();
+		for (Region region : regions) {
+			Set<Field> mirroredRegionFields = region.fields.stream() //
+					.map(field -> fields.get(field.id + numHalfFields)) //
+					.collect(Collectors.toSet());
+			
+			mirroredRegions.add(new Region(mirroredRegionFields, region.bonusTroops));
+		}
+	}
+	
+	private void connectSides() {
+		final double maxDistance = FIELD_WIDTH;
+		int numConnections = 0;
+		
+		for (int i = 0; i < numFields / 2; i++) {
+			Field field = fields.get(i);
+			Field mirrored = fields.get(i + numFields / 2);
+			double distanceBetweenFields = positions.get(field).distance(positions.get(mirrored));
+			double relativeDistance = distanceBetweenFields / maxDistance;
+			double connectionProbability = relativeDistance * 3f; // reduce the probability to not connect to many fields
+			
+			if (random.nextFloat() > connectionProbability) { // chance to be connected is proportionately to the distance between the fields
+				connectFields(field, mirrored);
+				numConnections++;
+			}
+		}
+		
+		if (numConnections < NUM_CONNECTIONS_BETWEEN_SIDES_MIN) {
+			Set<Pair<Field, Field>> possibleConnections = IntStream.range(0, numFields / 2) //
+					.mapToObj(id -> Pair.of(fields.get(id), fields.get(id + numFields / 2))) //
+					.collect(Collectors.toSet());
+			
+			connectNearestFields(NUM_CONNECTIONS_BETWEEN_SIDES_MIN, possibleConnections);
+		}
+	}
+	
+	public GameMap buildGameMap() {
+		Set<Pair<Field, Field>> connectionSet = connections.entrySet().stream() //
+				.flatMap(entry -> entry.getValue().stream().map(field2 -> Pair.of(entry.getKey(), field2))) //
+				.collect(Collectors.toSet());
+		
+		//distinct the connection set, because the connections were added bidirectional
+		Set<Pair<Field, Field>> distinctConnectionSet = new HashSet<>();
+		for (Pair<Field, Field> connection : connectionSet) {
+			if (!distinctConnectionSet.contains(connection) && !distinctConnectionSet.contains(connection.swapped())) {
+				distinctConnectionSet.add(connection);
+			}
+		}
+		
+		return new GameMap(new HashSet<>(fields), distinctConnectionSet, new HashSet<>(regions));
 	}
 	
 	//*************************************************************************
 	//*** helper methods
 	//*************************************************************************
 	
+	/**
+	 * Add the connections bidirectional 
+	 */
 	private void connectFields(Field field1, Field field2) {
 		connections.computeIfAbsent(field1, x -> new HashSet<>()).add(field2);
 		connections.computeIfAbsent(field2, x -> new HashSet<>()).add(field1);
@@ -242,5 +356,12 @@ public class MapGenerator {
 	
 	private boolean isFieldsConnected(Field field1, Field field2) {
 		return connections.get(field1) != null && connections.get(field1).contains(field2);
+	}
+	
+	private void connectNearestFields(int numConnectionsToAdd, Set<Pair<Field, Field>> possibleConnections) {
+		possibleConnections.stream() //
+				.sorted(Comparator.comparing(pair -> positions.get(pair.getKey()).distance(positions.get(pair.getValue())))) //
+				.limit(numConnectionsToAdd) //
+				.forEach(pair -> connectFields(pair.getKey(), pair.getValue()));
 	}
 }
