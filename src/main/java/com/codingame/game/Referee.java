@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.codingame.game.Action.Type;
+import com.codingame.game.build.MapGenerator;
 import com.codingame.game.build.RandomUtil;
 import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
@@ -57,8 +58,8 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50);
 		
-		//		map = MapGenerator.generateMap();
-		map = new StaticMapGenerator().createMapOneRegion();
+//		map = MapGenerator.generateMap();
+		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
 		view = new View(graphicEntityModule);
@@ -167,7 +168,7 @@ public class Referee extends AbstractReferee {
 		
 		switch(turnType) {
 		case CHOOSE_STARTING_FIELDS:
-
+			view.animatePicks(map.fields, map.getPicksPerformed());
 			break;
 		case DEPLOY_TROOPS:
 			view.animateDeployments(actions1, actions2);
@@ -225,7 +226,7 @@ public class Referee extends AbstractReferee {
 		player2.setScore(fieldsPlayer2);
 		
 		// check whether the game has ended
-		if (fieldsPlayer1 == 0 || fieldsPlayer2 == 0) {
+		if (turnType != TurnType.CHOOSE_STARTING_FIELDS && (fieldsPlayer1 == 0 || fieldsPlayer2 == 0)) {
 			gameManager.endGame();
 		}
 	}

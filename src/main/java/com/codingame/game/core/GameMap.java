@@ -1,5 +1,6 @@
 package com.codingame.game.core;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -9,8 +10,8 @@ import com.codingame.game.Action;
 import com.codingame.game.Action.Type;
 import com.codingame.game.util.Pair;
 import com.codingame.game.view.MovementEvents;
-import com.codingame.game.view.MovementEvents.MovementStep;
 import com.codingame.game.view.MovementEvents.MovementType;
+import com.codingame.game.view.PickEvent;
 
 /**
  * The game map, that contains all fields and troops.
@@ -27,6 +28,7 @@ public class GameMap {
 	public final Set<Field> fields;
 	public final Set<Pair<Field, Field>> connections;
 	public final Set<Region> regions;
+	private final Set<PickEvent> picksPerformed;
 	private final MovementEvents moveEvents;
 	
 	protected StartingFieldChoice startingFieldChoice;
@@ -52,10 +54,12 @@ public class GameMap {
 		
 		startingFieldChoice = new StartingFieldChoice(fields.size());
 		moveEvents = new MovementEvents();
+		picksPerformed = new HashSet<PickEvent>();
 	}
 	
 	public void resetEvents() {
 		moveEvents.reset();
+		picksPerformed.clear();
 	}
 	
 	public MovementEvents getEvents() {
@@ -180,17 +184,28 @@ public class GameMap {
 				if (action1.getTargetId() <= startingFieldChoice.player1PriorizedMaxFieldId && action1.getOwner() == Owner.PLAYER_1 || //
 						action1.getTargetId() > startingFieldChoice.player1PriorizedMaxFieldId && action1.getOwner() == Owner.PLAYER_2) {
 					executeIndependent(action1);
+					
+					picksPerformed.add(new PickEvent(action2.getTargetId(), action2.getOwner(), true));
 				}
 				else {
 					executeIndependent(action2);
+					
+					picksPerformed.add(new PickEvent(action1.getTargetId(), action1.getOwner(), true));
 				}
 			}
 		}
 		
 		// the actions are not dependent
 		if (!executedSimultaneously) {
-			executeIndependent(action1);
-			executeIndependent(action2);
+			
+			// avoid picking the same field with random x pick
+			if (action1.getType() == Type.RANDOM) {
+				executeIndependent(action2);
+				executeIndependent(action1);
+			} else {
+				executeIndependent(action1);
+				executeIndependent(action2);	
+			}
 		}
 	}
 	
@@ -291,6 +306,8 @@ public class GameMap {
 		Field field = getFieldById(action.getTargetId()).get();
 		field.setOwner(action.getOwner());
 		field.setTroops(1);
+
+		picksPerformed.add(new PickEvent(field.id, action.getOwner(), false));
 		
 		startingFieldChoice.decreaseStartingFieldsLeft(action.getOwner());
 	}
@@ -311,6 +328,8 @@ public class GameMap {
 		// deploy a starting troop on the chosen field
 		field.setOwner(owner);
 		field.setTroops(1);
+		
+		picksPerformed.add(new PickEvent(field.id, action.getOwner(), false));
 		
 		startingFieldChoice.decreaseStartingFieldsLeft(owner);
 	}
@@ -355,6 +374,10 @@ public class GameMap {
 		else {
 			throw new IllegalArgumentException("The parameter 'player' must be PLAYER_1 or PLAYER_2 but was " + player);
 		}
+	}
+	
+	public Set<PickEvent> getPicksPerformed() {
+		return picksPerformed;
 	}
 	
 	public Optional<Field> getFieldById(int id) {

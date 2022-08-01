@@ -22,11 +22,11 @@ import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.MovementEvents.MovementStep;
-import com.codingame.game.view.MovementEvents.MovementType;
 import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.codingame.gameengine.module.entities.Polygon;
+import com.codingame.gameengine.module.entities.Sprite;
 import com.codingame.gameengine.module.entities.SpriteAnimation;
 import com.codingame.gameengine.module.entities.Text;
 import com.codingame.gameengine.module.entities.Text.FontWeight;
@@ -48,8 +48,9 @@ public class View {
 	
 	private Map<Field, Vector2D> cachedFieldPositions;
 	private Map<Region, Integer> cachedRegionColors;
-	String[] gunner_left_right_red;
-	String[] gunner_left_right_blue;
+	private String[] gunner_left_right_red;
+	private String[] gunner_left_right_blue;
+	private Map<Owner, Sprite> pickGraphics;
 	
 	// fields that has to be kept up to date during the game
 	private Map<Field, Text> fieldText;
@@ -66,6 +67,7 @@ public class View {
 		deployText = new HashMap<Field, Text>();
 		moveAnimations = new HashMap<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>>();
 		moveText = new HashMap<Pair<Field, Field>, Text>();
+		pickGraphics = new HashMap<Owner, Sprite>();
 		
 		gunner_left_right_blue = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Blue").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Blue_Run.png").split();
 		gunner_left_right_red = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Red").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Red_Run.png").split();
@@ -578,6 +580,36 @@ public class View {
 			return start1.add(dir1.setLength(dir1.length() * t));
 		}
 	}
+	
+	public void animatePicks(Set<Field> fields, Set<PickEvent> picksPerformed) {
+		Map<Field, Vector2D> positions = getPositions(fields);
+		
+		// moved pick to a later point to manipulate image order...
+		if (pickGraphics.size() == 0) {
+			pickGraphics.put(Owner.PLAYER_1, graphicEntityModule.createSprite().setImage("pointing_finger.png").setTint(getColorForOwner().get(Owner.PLAYER_1)).setAlpha(1).setAnchor(0.5).setBaseWidth(100).setBaseHeight(100));
+			pickGraphics.put(Owner.PLAYER_2, graphicEntityModule.createSprite().setImage("pointing_finger.png").setTint(getColorForOwner().get(Owner.PLAYER_2)).setAlpha(1).setAnchor(0.5).setBaseWidth(100).setBaseHeight(100));
+		}
+		
+		for (PickEvent pick : picksPerformed) {
+			Field field = fields.stream().filter(f -> f.id == pick.targetId).findFirst().get();
+			Vector2D position = positions.get(field);
+			Sprite hand = pickGraphics.get(pick.owner);
+			
+			double xOffset = 0;
+			double rotation = 0;
+			double scale = 1;
+			
+			if (pick.denied) {
+				xOffset = 80 * (pick.owner == Owner.PLAYER_1 ? -1 : 1);
+				rotation = Math.PI/5. * (pick.owner == Owner.PLAYER_1 ? -1 : 1);
+				scale = 0.8;
+			}
+				
+			hand.setX((int) (position.x+xOffset), Curve.NONE).setY((int) position.y-100, Curve.NONE).setAlpha(1, Curve.NONE) //
+				.setScale(scale, Curve.NONE).setRotation(rotation, Curve.NONE);
+			graphicEntityModule.commitEntityState(0.2, hand);
+		}
+	}
 
 	public void animateDeployments(List<Action> actions1, List<Action> actions2) {
 		List<Action> actions = new ArrayList<Action>();
@@ -668,7 +700,7 @@ public class View {
 				case Retreat:
 					troops.setX((int)p1.x).setY((int)p1.y);
 					
-					// scale animations are troublesome
+					// scale animations are troublesome (turning to run back)
 //					.setScale(-1*troops.getScaleX(), Curve.NONE);
 					break;
 				}
@@ -710,6 +742,11 @@ public class View {
 			Text troopText = moveText.get(key);
 			troopText.setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y+30, Curve.NONE).setAlpha(1, Curve.NONE).setText("");
 			graphicEntityModule.commitEntityState(0.9, troopText);
+		}
+		
+		for (Sprite hand : pickGraphics.values()) {
+			hand.setAlpha(0, Curve.NONE);
+			graphicEntityModule.commitEntityState(0.2, hand);
 		}
 	}
 }
