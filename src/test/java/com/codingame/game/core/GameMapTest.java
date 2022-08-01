@@ -18,6 +18,7 @@ import com.codingame.game.Action;
 import com.codingame.game.Action.Type;
 import com.codingame.game.build.RandomUtil;
 import com.codingame.game.build.StaticMapGenerator;
+import com.codingame.game.util.Pair;
 import com.codingame.game.util.TestUtils;
 
 public class GameMapTest {
@@ -659,6 +660,52 @@ public class GameMapTest {
 			
 			assertEquals(startingFieldsToChoose, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
 			assertEquals(startingFieldsToChoose - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_pick_starting_field__random_and_pick_first_random_position() throws Exception {
+			int startingFieldsToChoose1 = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			int startingFieldsToChoose2 = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2);
+			
+			StartingFieldChoice startingFieldChoice = TestUtils.getFieldPerReflection(map, "startingFieldChoice");
+			int firstRandomPosition = startingFieldChoice.getStartingFieldIdsForPlayer(Owner.PLAYER_1).get(0);
+			
+			// just like the test above, but the actions are swapped
+			map.executeSimultaneously(new Action(Type.RANDOM).setOwner(Owner.PLAYER_1), new Action(Type.PICK, firstRandomPosition).setOwner(Owner.PLAYER_2));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(1, fieldsPlayer1.size());
+			assertEquals(1, fieldsPlayer2.size());
+			
+			assertEquals(firstRandomPosition, fieldsPlayer2.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose1 - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose2 - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
+		}
+		
+		@Test
+		public void test_pick_starting_field__random_and_pick_first_random_position_swapped_actions() throws Exception {
+			int startingFieldsToChoose1 = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1);
+			int startingFieldsToChoose2 = map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2);
+			
+			StartingFieldChoice startingFieldChoice = TestUtils.getFieldPerReflection(map, "startingFieldChoice");
+			int firstRandomPosition = startingFieldChoice.getStartingFieldIdsForPlayer(Owner.PLAYER_1).get(0);
+			
+			// just like the test above, but the actions are swapped
+			map.executeSimultaneously(new Action(Type.PICK, firstRandomPosition).setOwner(Owner.PLAYER_2), new Action(Type.RANDOM).setOwner(Owner.PLAYER_1));
+			
+			List<Field> fieldsPlayer1 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_1).collect(Collectors.toList());
+			List<Field> fieldsPlayer2 = map.fields.stream().filter(field -> field.getOwner() == Owner.PLAYER_2).collect(Collectors.toList());
+			
+			assertEquals(1, fieldsPlayer1.size());
+			assertEquals(1, fieldsPlayer2.size());
+			
+			assertEquals(firstRandomPosition, fieldsPlayer2.stream().findFirst().get().id);
+			
+			assertEquals(startingFieldsToChoose1 - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_1));
+			assertEquals(startingFieldsToChoose2 - 1, map.getStartingFieldChoice().getStartingFieldsLeft(Owner.PLAYER_2));
 		}
 	}
 	
