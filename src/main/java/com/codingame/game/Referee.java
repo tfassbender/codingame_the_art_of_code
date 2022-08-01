@@ -58,7 +58,7 @@ public class Referee extends AbstractReferee {
 		gameManager.setTurnMaxTime(50);
 		
 		//		map = MapGenerator.generateMap();
-		map = new StaticMapGenerator().createMapFiveRegions();
+		map = new StaticMapGenerator().createMapOneRegion();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
 		view = new View(graphicEntityModule);

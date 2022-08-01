@@ -200,6 +200,19 @@ public class Vector2D implements Cloneable {
 	}
 	
 	/**
+	 * Check whether this vector is almost equal to the parameter vector.
+	 * 
+	 * @param vec
+	 * 		The checked vector.
+	 * 
+	 * @return
+	 * 		True if the vectors are close. False otherwise.
+	 */
+	public boolean isCloseTo(Vector2D vec) {
+		return Math.abs(x-vec.x) < 1e-4 && Math.abs(y-vec.y) < 1e-4;
+ 	}
+	
+	/**
 	 * Calculate the scalar product of this vector and the parameter vector.
 	 * 
 	 * @param vec

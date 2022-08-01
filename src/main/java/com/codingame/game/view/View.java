@@ -198,10 +198,7 @@ public class View {
 			double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
 			boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
 			boolean drawIndirect = directLength > indirectLength && !sameRegion;
-			
-			createMovementAnimationEntity(connection.getKey(), connection.getValue(), pos1, pos2);
-			createMovementAnimationEntity(connection.getValue(), connection.getKey(), pos2, pos1);
-			
+
 			if (drawIndirect) {
 				drawConnectionLine(pos1, inter1);
 				drawConnectionLine(pos2, inter2);
@@ -209,6 +206,9 @@ public class View {
 			else {
 				drawConnectionLine(pos1, pos2);
 			}
+			
+			createMovementAnimationEntity(connection.getKey(), connection.getValue(), pos1, pos2);
+			createMovementAnimationEntity(connection.getValue(), connection.getKey(), pos2, pos1);
 		}
 	}
 	
@@ -614,6 +614,8 @@ public class View {
 			Vector2D p1 = positions.get(f1);
 			Vector2D p2 = positions.get(f2);
 
+			boolean leftRight = p1.x <= p2.x + 1e-4;
+			
 			List<MovementStep> steps = events.getSteps(f1, f2);
 			
 			Pair<SpriteAnimation, SpriteAnimation> spriteSelection = moveAnimations.get(key);
@@ -625,16 +627,12 @@ public class View {
 			troopText.setText(steps.get(0).units+"").setX((int)p1.x).setY((int)p1.y+30).setAlpha(1);
 			graphicEntityModule.commitEntityState(t, troopText);
 			
-			troops.setAlpha(1, Curve.IMMEDIATE).setX((int)p1.x).setY((int)p1.y).reset();
+			troops.setAlpha(1, Curve.IMMEDIATE).setX((int)p1.x).setY((int)p1.y).reset().setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);;
 			graphicEntityModule.commitEntityState(t, troops);
 			
 			for (MovementStep step : steps) {
 				t += stepDuration;
 				boolean lastStep = step == steps.get(steps.size()-1);
-				boolean leftRight = p1.x <= p2.x + 1e-4;
-
-				if (step.type == MovementType.Retreat)
-					leftRight = !leftRight;
 				
 //					troops.reset();
 				
@@ -646,16 +644,15 @@ public class View {
 					troopText.setAlpha(0);
 					break;
 				case Fight:
-					// do nothing for now
-					System.err.println("Fight: "+f1.id+" "+f2.id);
+					// do not move and
 					// add shooting animation
 					if (step.fightWithMovement != null) {
 						Vector2D shootAt = estimateFightPosition(positions, step.fightWithMovement.getKey(), step.fightWithMovement.getValue());
 						Circle bullet = graphicEntityModule.createCircle();
 						bullet.setX(troops.getX()).setY(troops.getY()).setRadius(5).setFillColor(0xFFF000);
-						graphicEntityModule.commitEntityState(t, bullet);
+						graphicEntityModule.commitEntityState(t-stepDuration, bullet);
 						bullet.setX((int)shootAt.x).setY((int)shootAt.y);
-						graphicEntityModule.commitEntityState(t+stepDuration-0.01, bullet);
+						graphicEntityModule.commitEntityState(t, bullet);
 						bullet.setAlpha(0, Curve.IMMEDIATE);
 						graphicEntityModule.commitEntityState(1, bullet);
 					}
@@ -670,6 +667,9 @@ public class View {
 					break;
 				case Retreat:
 					troops.setX((int)p1.x).setY((int)p1.y);
+					
+					// scale animations are troublesome
+//					.setScale(-1*troops.getScaleX(), Curve.NONE);
 					break;
 				}
 				
@@ -694,6 +694,22 @@ public class View {
 			
 			deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
 			graphicEntityModule.commitEntityState(0.35, deployAt);
+		}
+		
+		if (turnType != TurnType.MOVE_TROOPS && cachedFieldPositions != null)
+		for (Pair<Field, Field> key : moveAnimations.keySet()) {
+			Pair<SpriteAnimation, SpriteAnimation> spritesRedBlue = moveAnimations.get(key);
+			Vector2D startPosition = cachedFieldPositions.get(key.getKey());
+			Vector2D endPosition = cachedFieldPositions.get(key.getValue());
+			boolean leftRight = startPosition.x  <= endPosition.x+1e-4;
+			
+			for (SpriteAnimation troop : new SpriteAnimation[] {spritesRedBlue.getKey(), spritesRedBlue.getValue()}) {
+				troop.setAlpha(0, Curve.NONE).setX((int)startPosition.x, Curve.NONE).setY((int)startPosition.y, Curve.NONE).setScaleX(leftRight ? 1 : -1);
+			}
+			
+			Text troopText = moveText.get(key);
+			troopText.setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y+30, Curve.NONE).setAlpha(1, Curve.NONE).setText("");
+			graphicEntityModule.commitEntityState(0.9, troopText);
 		}
 	}
 }
