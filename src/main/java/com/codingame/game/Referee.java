@@ -57,7 +57,7 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50);
 		
-		map = MapGenerator.generateMap();
+		map = MapGenerator.generateMap().getKey(); //TODO store the initial field positions
 		//		map = new StaticMapGenerator().createMapTwoRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
