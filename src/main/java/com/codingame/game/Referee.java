@@ -16,6 +16,7 @@ import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
 import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
+import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.View;
 import com.codingame.gameengine.core.AbstractPlayer.TimeoutException;
 import com.codingame.gameengine.core.AbstractReferee;
@@ -57,11 +58,13 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50);
 		
-		map = MapGenerator.generateMap().getKey(); //TODO store the initial field positions
-		//		map = new StaticMapGenerator().createMapTwoRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
-		view = new View(graphicEntityModule, map);
+		Pair<GameMap, Map<Field, Vector2D>> generatedMap = MapGenerator.generateMap();
+		map = generatedMap.getKey();
+		Map<Field, Vector2D> initialPositions = generatedMap.getValue();
+		
+		view = new View(graphicEntityModule, map, initialPositions);
 		view.drawBackground();
 		view.drawPlayerInfos(gameManager.getPlayer(0), gameManager.getPlayer(1));
 		view.drawLegend(map.regions);

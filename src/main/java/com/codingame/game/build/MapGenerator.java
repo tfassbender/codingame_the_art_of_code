@@ -51,25 +51,7 @@ public class MapGenerator {
 	private static final int BONUS_TROOPS_MAX = 10;
 	
 	public static Pair<GameMap, Map<Field, Vector2D>> generateMap() {
-		// until we can generate maps by our self we use random static
-		// return selectRandomStaticMap();
-		
 		return new MapGenerator().generateRandomMap();
-	}
-	
-	private static GameMap selectRandomStaticMap() {
-		int selection = RandomUtil.getInstance().nextInt(3);
-		StaticMapGenerator staticMaps = new StaticMapGenerator();
-		
-		if (selection == 0) {
-			return staticMaps.createMapOneRegion();
-		}
-		else if (selection == 1) {
-			return staticMaps.createMapTwoRegions();
-		}
-		else {
-			return staticMaps.createMapFiveRegions();
-		}
 	}
 	
 	private int numFields;
@@ -80,7 +62,7 @@ public class MapGenerator {
 	private Map<Field, Set<Field>> connections;
 	private List<Region> regions;
 	
-	private MapGenerator() {
+	protected MapGenerator() {
 		random = RandomUtil.getInstance();
 		positions = new HashMap<>();
 		
@@ -107,6 +89,7 @@ public class MapGenerator {
 	 */
 	private Pair<GameMap, Map<Field, Vector2D>> generateRandomMap() {
 		chooseNumberOfFields();
+		initializeHalfFields();
 		positionFields();
 		connectFields();
 		
@@ -129,7 +112,9 @@ public class MapGenerator {
 		if (numFields % 2 == 1) {
 			numFields++;
 		}
-		
+	}
+	
+	private void initializeHalfFields() {
 		for (int i = 0; i < numFields / 2; i++) {
 			fields.add(new Field(i));
 		}

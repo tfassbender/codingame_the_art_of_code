@@ -48,9 +48,9 @@ public class View {
 	private Text statisticsPlayer1;
 	private Text statisticsPlayer2;
 	
-	public View(GraphicEntityModule graphicEntityModule, GameMap map) {
+	public View(GraphicEntityModule graphicEntityModule, GameMap map, Map<Field, Vector2D> initialPositions) {
 		this.graphicEntityModule = graphicEntityModule;
-		calculateFieldPositions(map);
+		calculateFieldPositions(map, initialPositions);
 		
 		fieldText = new HashMap<Field, Text>();
 	}

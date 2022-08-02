@@ -27,12 +27,12 @@ public class TestUtils {
 		return (T) value;
 	}
 	
-	public static void invokePrivateMethod(Object instance, String methodName, Object... parameters) throws Throwable {
+	public static Object invokePrivateMethod(Object instance, String methodName, Object... parameters) throws Throwable {
 		Class<?>[] parameterTypes = new Class<?>[parameters.length];
 		for (int i = 0; i < parameters.length; i++) {
 			parameterTypes[i] = parameters[i].getClass();
 		}
-		invokePrivateMethod(instance, methodName, parameterTypes, parameters);
+		return invokePrivateMethod(instance, methodName, parameterTypes, parameters);
 	}
 	
 	public static Object invokePrivateMethod(Object instance, String methodName, Class<?>[] parameterTypes, Object... parameters) throws Throwable {
