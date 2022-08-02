@@ -14,7 +14,7 @@ read enemyDeployableTroops:int
 read startingFieldsLeft:int
 read enemyStartingFieldsLeft:int
 loop numberOfFields read id:int troops:int owner:int
-write RANDOM
+write WAIT
 
 STATEMENT
 Defeat the enemy army.

@@ -158,6 +158,12 @@ public class Referee extends AbstractReferee {
 			return;
 		}
 		
+		// replace WAIT during CHOOSE_STARTING_FIELDS with RANDOM
+	    if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
+	    	actions1.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
+	    	actions2.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
+	    }
+		
 		// add the owner of the action to the action object
 		actions1.forEach(action -> action.setOwner(Owner.PLAYER_1));
 		actions2.forEach(action -> action.setOwner(Owner.PLAYER_2));
@@ -390,10 +396,7 @@ public class Referee extends AbstractReferee {
 					}
 					break;
 				case WAIT:
-					if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
-						throw new InvalidActionException("The action " + Type.WAIT + " cannot be used in '" + TurnType.CHOOSE_STARTING_FIELDS + //
-								"' turns. Use " + Type.RANDOM + " if you don't want to choose the fields yourself.");
-					}
+					// always valid
 					break;
 				default:
 					throw new IllegalStateException("Unknown action type: " + action.getType());
