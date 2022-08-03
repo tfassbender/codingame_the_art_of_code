@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.codingame.game.Player;
-import com.codingame.game.build.RandomUtil;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
@@ -50,19 +49,25 @@ public class View {
 	
 	public View(GraphicEntityModule graphicEntityModule, GameMap map, Map<Field, Vector2D> initialPositions) {
 		this.graphicEntityModule = graphicEntityModule;
-		calculateFieldPositions(map, initialPositions);
+		
+		initialPositions = addFieldOffset(initialPositions);
+		cachedFieldPositions = initialPositions;
+		Set<PositionedField> positionedFields = calculateFieldPositions(map, initialPositions);
+		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(PositionedField::getField, PositionedField::pos));
 		
 		fieldText = new HashMap<Field, Text>();
 	}
 	
-	private void calculateFieldPositions(GameMap map) {
-		Set<PositionedField> positionedFields = calculateFieldPositions(map, estimateFieldPositions(map.fields));
-		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(PositionedField::getField, PositionedField::pos));
+	private Map<Field, Vector2D> addFieldOffset(Map<Field, Vector2D> initialPositions) {
+		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // +50 so the fields are not pushed to the edge completely
+		return initialPositions.entrySet().stream() //
+				.map(entry -> Pair.of(entry.getKey(), entry.getValue().add(offset))) //
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
 	}
 	
 	private Set<PositionedField> calculateFieldPositions(GameMap map, Map<Field, Vector2D> initialPositions) {
 		// normalise the initial positions (remove the offset to the drawing game field)
-		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // -50 so the fields are not pushed to the edge completely
+		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // +50 so the fields are not pushed to the edge completely
 		initialPositions = initialPositions.entrySet().stream() //
 				.map(entry -> Pair.of(entry.getKey(), entry.getValue().sub(offset))) //
 				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
@@ -360,167 +365,6 @@ public class View {
 		grid.setDistNorm(1);
 		
 		return grid.createRegionPolygons(graphicEntityModule);
-	}
-	
-	private Map<Field, Vector2D> estimateFieldPositions(Set<Field> fields) {
-		Map<Field, Vector2D> positions = new HashMap<Field, Vector2D>();
-		
-		// right now, we use hard coded values
-		if (fields.size() == 8) { // map_one_region
-			double xDist = 0.25 * GAME_FIELD_WIDTH;
-			double yDist = 0.4 * GAME_FIELD_HEIGHT;
-			
-			for (Field field : fields) {
-				int id = field.id;
-				boolean mirrorX = id >= fields.size() / 2;
-				boolean mirrorY = false;
-				id = id % (fields.size() / 2);
-				
-				double xDiff = xDist / 2;
-				double yDiff = yDist;
-				
-				if (id == 1) {
-					xDiff += xDist;
-				}
-				
-				while (id >= 1) {
-					yDiff -= yDist;
-					id -= 2;
-				}
-				
-				if (mirrorX)
-					xDiff *= -1;
-				
-				if (mirrorY)
-					yDiff *= -1;
-				
-				double x = GAME_FIELD_WIDTH / 2 - xDiff;
-				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
-				
-				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
-			}
-		}
-		else if (fields.size() == 18) { // map_two_regions
-			double xDist = 0.15 * GAME_FIELD_WIDTH;
-			double yDist = 0.3 * GAME_FIELD_HEIGHT;
-			
-			for (Field field : fields) {
-				int id = field.id;
-				boolean mirrorX = id >= fields.size() / 2;
-				boolean mirrorY = false;
-				id = id % (fields.size() / 2);
-				
-				double xDiff = 0;
-				double yDiff = 0;
-				
-				if (id == 2) {
-					xDiff = 3 * xDist;
-					yDiff = 0;
-				}
-				else if (id < 2 || id > 6) {
-					int idX = id < 2 ? id : id - 7;
-					xDiff = (2 - idX) * xDist;
-					yDiff = 1.5 * yDist;
-					
-					mirrorY = id > 6;
-				}
-				else { // 3, 4, 5 6
-					int idX = id < 5 ? id : id - 2;
-					xDiff = idX == 3 ? 2.25 * xDist : .5 * xDist;
-					yDiff = 0.5 * yDist;
-					
-					mirrorY = id > 4;
-				}
-				
-				if (mirrorX)
-					xDiff *= -1;
-				
-				if (mirrorY)
-					yDiff *= -1;
-				
-				double x = GAME_FIELD_WIDTH / 2 - xDiff;
-				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
-				
-				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
-			}
-		}
-		else if (fields.size() == 26) { // map_five_regions
-			double xDist = 0.1 * GAME_FIELD_WIDTH;
-			double yDist = 0.2 * GAME_FIELD_HEIGHT;
-			double regionMoveX = 0.85;
-			
-			for (Field field : fields) {
-				int id = field.id;
-				boolean mirrorX = id >= fields.size() / 2;
-				boolean mirrorY = false;
-				id = id % (fields.size() / 2);
-				
-				double xDiff = 0;
-				double yDiff = 0;
-				
-				if (id >= 10 && id <= 12) { // region C
-					xDiff = xDist;
-					yDiff = -(id - 11) * yDist;
-				}
-				else if (id >= 0 && id <= 5) {// region A
-					int row = 0;
-					
-					if (id < 3) {
-						xDiff = regionMoveX * (5 - id) * xDist;
-						row = 0;
-					}
-					else if (id < 5) {
-						xDiff = regionMoveX * (7.5 - id) * xDist;
-						row = 1;
-					}
-					else {
-						xDiff = regionMoveX * (5 - 1) * xDist;
-						row = 2;
-					}
-					
-					yDiff = 0.75 * (3 - row) * yDist;
-				}
-				else { // region B
-					int row = 0;
-					
-					if (id == 6) {
-						xDiff = regionMoveX * (4) * xDist;
-						row = 0;
-					}
-					else if (id == 9) {
-						xDiff = regionMoveX * (4) * xDist;
-						row = 2;
-					}
-					else {
-						xDiff = regionMoveX * (4) * xDist + 1.5 * (7.5 - id) * xDist;
-						row = 1;
-					}
-					
-					yDiff = -0.75 * (row + 1) * yDist;
-				}
-				
-				if (mirrorX)
-					xDiff *= -1;
-				
-				if (mirrorY)
-					yDiff *= -1;
-				
-				double x = GAME_FIELD_WIDTH / 2 - xDiff;
-				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
-				
-				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
-			}
-		}
-		else {
-			// do random placement if map not found (improvement would be to mirror half...)
-			for (Field field : fields) {
-				double x = RandomUtil.getInstance().nextFloat() * GAME_FIELD_WIDTH;
-				double y = RandomUtil.getInstance().nextFloat() * GAME_FIELD_HEIGHT;
-				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
-			}
-		}
-		
-		return positions;
 	}
 	
 	private Vector2D findClosestBorderIntersection(Vector2D start, Vector2D dir) {
