@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -19,7 +21,10 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 
 import com.codingame.game.core.Field;
+import com.codingame.game.core.Region;
+import com.codingame.game.util.Pair;
 import com.codingame.game.util.TestUtils;
+import com.codingame.game.util.Vector2D;
 
 public class MapGeneratorTest {
 	
@@ -126,7 +131,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_getDividedFieldGroups_notDivided() throws Throwable {
-		List<Field> fields = IntStream.range(0, 5).mapToObj(Field::new).collect(Collectors.toList());
+		List<Field> fields = createFields(5);
 		
 		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(1));
 		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(1), fields.get(2));
@@ -141,15 +146,202 @@ public class MapGeneratorTest {
 		assertFalse(dividedFields.isPresent());
 	}
 	
-	//TODO test connectGroups
-	//TODO test chooseRegions
-	//TODO test calculateBonusTroopsForRegion
-	//TODO test mirrorGraph
-	//TODO test connectSides
-	//TODO test buildGameMap
+	@Test
+	public void test_connectGroups_closestFieldsAreConnected() throws Throwable {
+		List<Field> fields = createFields(5);
+		Set<Field> group1 = new HashSet<>(fields.subList(0, 2));
+		Set<Field> group2 = new HashSet<>(fields.subList(2, 5));
+		Set<Set<Field>> groups = new HashSet<Set<Field>>();
+		groups.add(group1);
+		groups.add(group2);
+		Map<Field, Vector2D> positions = fields.stream() //
+				.map(field -> Pair.of(field, new Vector2D(field.id, 0))) // position fields in a line (by increasing id)
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		
+		TestUtils.setFieldPerReflection(generator, "fields", fields);
+		TestUtils.setFieldPerReflection(generator, "positions", positions);
+		
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(1));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(2), fields.get(3));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(3), fields.get(4));
+		
+		TestUtils.invokePrivateMethod(generator, "connectGroups", new Class[] {Set.class}, groups);
+		Map<Field, Set<Field>> connections = TestUtils.getFieldPerReflection(generator, "connections");
+		
+		assertTrue(allFieldsConnectedTransitively());
+		assertTrue(connections.get(fields.get(1)).contains(fields.get(2)));
+	}
+	
+	@Test
+	public void test_connectGroups_allFieldsConnected() throws Throwable {
+		List<Field> fields = createFields(5);
+		Set<Set<Field>> groups = fields.stream() //
+				.map(field -> {
+					Set<Field> group = new HashSet<Field>();
+					group.add(field);
+					return group;
+				}) //
+				.collect(Collectors.toSet());
+		Map<Field, Vector2D> positions = fields.stream() //
+				.map(field -> Pair.of(field, new Vector2D(field.id, 0))) // position fields in a line (by increasing id)
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		
+		TestUtils.setFieldPerReflection(generator, "fields", fields);
+		TestUtils.setFieldPerReflection(generator, "positions", positions);
+		
+		TestUtils.invokePrivateMethod(generator, "connectGroups", new Class[] {Set.class}, groups);
+		
+		assertTrue(allFieldsConnectedTransitively());
+	}
+	
+	@Test
+	public void test_chooseRegions() throws Throwable {
+		List<Field> fields = createFields(10);
+		
+		// position fields three groups on the x axis and increasing by their id on y axis
+		Map<Field, Vector2D> positions = fields.stream() //
+				.map(field -> Pair.of(field, new Vector2D((field.id % 3) * 1000, field.id))) // *1000 because of the min distance between cluster centers
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		
+		TestUtils.setFieldPerReflection(generator, "fields", fields);
+		TestUtils.setFieldPerReflection(generator, "positions", positions);
+		
+		TestUtils.invokePrivateMethod(generator, "chooseRegions");
+		
+		List<Region> regions = TestUtils.getFieldPerReflection(generator, "regions");
+		
+		Region region1 = regions.stream().filter(region -> region.fields.contains(fields.get(0))).findFirst().get(); // left most
+		Region region2 = regions.stream().filter(region -> region.fields.contains(fields.get(1))).findFirst().get(); // middle
+		Region region3 = regions.stream().filter(region -> region.fields.contains(fields.get(2))).findFirst().get(); // right most
+		
+		assertEquals(3, regions.size());
+		assertEquals(4, region1.fields.size());
+		assertEquals(3, region2.fields.size());
+		assertEquals(3, region3.fields.size());
+		
+		assertTrue(region1.fields.contains(fields.get(3)));
+		assertTrue(region1.fields.contains(fields.get(6)));
+		assertTrue(region1.fields.contains(fields.get(9)));
+		
+		assertTrue(region2.fields.contains(fields.get(4)));
+		assertTrue(region2.fields.contains(fields.get(7)));
+		
+		assertTrue(region3.fields.contains(fields.get(5)));
+		assertTrue(region3.fields.contains(fields.get(8)));
+	}
+	
+	@RepeatedTest(10)
+	public void test_chooseRegions_randomized() throws Throwable {
+		List<Field> fields = createFields(10);
+		
+		int numRegionsMin = TestUtils.getFieldPerReflection(generator, "NUM_REGIONS_MIN");
+		int numRegionsMax = TestUtils.getFieldPerReflection(generator, "NUM_REGIONS_MAX");
+		int numRegions = new Random().nextInt(numRegionsMax / 2 - numRegionsMin / 2) + numRegionsMin / 2; // /2 because only half the field is generated
+		
+		// fixed center positions around which the fields are positioned
+		List<Vector2D> centers = Arrays.asList(new Vector2D(0, 0), new Vector2D(1000, 1000), new Vector2D(2000, 4000), new Vector2D(0, 5000));
+		
+		// position fields in groups around the fixed centers (with some random noise)
+		Map<Field, Vector2D> positions = fields.stream() //
+				.map(field -> Pair.of(field, addRandomNoise(centers.get(field.id % numRegions)))) //
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		
+		TestUtils.setFieldPerReflection(generator, "fields", fields);
+		TestUtils.setFieldPerReflection(generator, "positions", positions);
+		
+		TestUtils.invokePrivateMethod(generator, "chooseRegions");
+		
+		List<Region> regions = TestUtils.getFieldPerReflection(generator, "regions");
+		
+		assertEquals(numRegions, regions.size());
+	}
+	
+	@Test
+	public void test_mirrorGraph() throws Throwable {
+		List<Field> fields = createFields(5);
+		Map<Field, Vector2D> positions = fields.stream() //
+				.map(field -> Pair.of(field, new Vector2D(field.id, 0))) // position fields in a line (by increasing id)
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		List<Region> regions = fields.stream() //
+				.collect(Collectors.groupingBy(field -> field.id % 2)) //
+				.values().stream() //
+				.map(fieldList -> new Region(new HashSet<>(fieldList), 0)) //
+				.collect(Collectors.toList());
+		
+		TestUtils.setFieldPerReflection(generator, "fields", fields);
+		TestUtils.setFieldPerReflection(generator, "numFields", fields.size() * 2);
+		TestUtils.setFieldPerReflection(generator, "positions", positions);
+		TestUtils.setFieldPerReflection(generator, "regions", regions);
+		
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(1));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(2));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(1), fields.get(3));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(4), fields.get(3));
+		
+		TestUtils.invokePrivateMethod(generator, "mirrorGraph");
+		Map<Field, Set<Field>> connections = getConnections();
+		
+		float fieldWidth = TestUtils.getFieldPerReflection(generator, "FIELD_WIDTH");
+		
+		Region region3 = regions.stream().filter(region -> region.fields.contains(fields.get(5))).findFirst().get();
+		Region region4 = regions.stream().filter(region -> region.fields.contains(fields.get(6))).findFirst().get();
+		
+		assertEquals(10, fields.size());
+		assertEquals(4, regions.size());
+		assertTrue(isFieldsConnected(fields, connections, 5, 6));
+		assertTrue(isFieldsConnected(fields, connections, 5, 7));
+		assertTrue(isFieldsConnected(fields, connections, 6, 8));
+		assertTrue(isFieldsConnected(fields, connections, 8, 9));
+		for (int i = 5; i < fields.size(); i++) {
+			assertEquals(fieldWidth - i + 5, positions.get(fields.get(i)).x, 1e-3);
+			assertEquals(0, positions.get(fields.get(i)).y, 1e-3);
+		}
+		assertEquals(3, region3.fields.size());
+		assertEquals(2, region4.fields.size());
+		assertTrue(region3.fields.contains(fields.get(7)));
+		assertTrue(region3.fields.contains(fields.get(9)));
+		assertTrue(region4.fields.contains(fields.get(8)));
+	}
+	
+	@Test
+	public void test_connectSides() throws Throwable {
+		List<Field> fields = createFields(5);
+		Map<Field, Vector2D> positions = fields.stream() //
+				.map(field -> Pair.of(field, new Vector2D(field.id, 0))) // position fields in a line (by increasing id)
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		List<Region> regions = fields.stream() //
+				.collect(Collectors.groupingBy(field -> field.id % 2)) //
+				.values().stream() //
+				.map(fieldList -> new Region(new HashSet<>(fieldList), 0)) //
+				.collect(Collectors.toList());
+		
+		TestUtils.setFieldPerReflection(generator, "fields", fields);
+		TestUtils.setFieldPerReflection(generator, "numFields", fields.size() * 2);
+		TestUtils.setFieldPerReflection(generator, "positions", positions);
+		TestUtils.setFieldPerReflection(generator, "regions", regions);
+		
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(1));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(2));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(1), fields.get(3));
+		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(4), fields.get(3));
+		
+		TestUtils.invokePrivateMethod(generator, "mirrorGraph");
+		TestUtils.invokePrivateMethod(generator, "connectSides");
+		
+		assertEquals(10, fields.size());
+		assertTrue(allFieldsConnectedTransitively());
+	}
+	
+	//*****************************************************************************
+	//*** helper methods
+	//*****************************************************************************
 	
 	private void randomizeSeed() {
 		RandomUtil.init(new Random().nextLong());
+	}
+	
+	private List<Field> createFields(int numFields) {
+		return IntStream.range(0, numFields).mapToObj(Field::new).collect(Collectors.toList());
 	}
 	
 	private List<Field> getFields() throws Exception {
@@ -158,5 +350,23 @@ public class MapGeneratorTest {
 	
 	private Map<Field, Set<Field>> getConnections() throws Exception {
 		return TestUtils.getFieldPerReflection(generator, "connections");
+	}
+	
+	private boolean allFieldsConnectedTransitively() throws Throwable {
+		@SuppressWarnings("unchecked")
+		Optional<Set<Set<Field>>> dividedFields = (Optional<Set<Set<Field>>>) TestUtils.invokePrivateMethod(generator, "getDividedFieldGroups");
+		return !dividedFields.isPresent();
+	}
+	
+	private Vector2D addRandomNoise(Vector2D position) {
+		return position.add(new Vector2D((Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100));
+	}
+	
+	private boolean isFieldsConnected(List<Field> fields, Map<Field, Set<Field>> connections, int fieldId1, int fieldId2) {
+		return connections.get(getFieldById(fields, fieldId1)).contains(getFieldById(fields, fieldId2));
+	}
+	
+	private Field getFieldById(List<Field> fields, int id) {
+		return fields.stream().filter(field -> field.id == id).findFirst().get();
 	}
 }

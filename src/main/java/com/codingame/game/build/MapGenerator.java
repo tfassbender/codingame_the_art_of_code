@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -196,18 +197,6 @@ public class MapGenerator {
 		return Optional.of(fieldGroups);
 	}
 	
-	private void performDepthFirstSearch(Set<Field> allFields, Set<Field> group, Field field) {
-		allFields.remove(field);
-		group.add(field);
-		
-		Set<Field> connectedFields = connections.computeIfAbsent(field, x -> new HashSet<>());
-		for (Field connected : connectedFields) {
-			if (!group.contains(connected)) {
-				performDepthFirstSearch(allFields, group, connected);
-			}
-		}
-	}
-	
 	/**
 	 * Connect the field of the divided groups, so all fields are connected to each other (transitively).
 	 */
@@ -261,18 +250,33 @@ public class MapGenerator {
 	
 	private void mirrorGraph() {
 		// mirror all fields
-		Map<Field, Vector2D> mirroredFields = new HashMap<>();
+		Map<Field, Vector2D> mirroredPositions = new HashMap<>();
 		int numHalfFields = numFields / 2;
 		for (Field field : fields) {
 			Vector2D position = positions.get(field);
-			Vector2D mirroredPosition = new Vector2D(position.x, 2 * FIELD_WIDTH - position.y); // mirror on the right side of the map-rectangle
+			Vector2D mirroredPosition = new Vector2D(FIELD_WIDTH - position.x, position.y); // mirror on the right side of the map-rectangle
 			Field mirroredField = new Field(numHalfFields + field.id);
-			mirroredFields.put(mirroredField, mirroredPosition);
+			mirroredPositions.put(mirroredField, mirroredPosition);
 		}
-		fields.addAll(mirroredFields.keySet());
+		fields.addAll(mirroredPositions.keySet());
+		positions.putAll(mirroredPositions);
 		
 		// sort the fields by id, because the added mirrored fields came from an unsorted set
 		fields.sort(Comparator.comparing(field -> field.id));
+		
+		// add connections between the mirrored fields
+		Map<Field, Set<Field>> mirroredConnections = new HashMap<>();
+		for (Entry<Field, Set<Field>> connectedFields : connections.entrySet()) {
+			Field field1 = connectedFields.getKey();
+			for (Field field2 : connectedFields.getValue()) {
+				Field mirroredFieldId1 = fields.get(field1.id + numHalfFields);
+				Field mirroredFieldId2 = fields.get(field2.id + numHalfFields);
+				
+				mirroredConnections.computeIfAbsent(mirroredFieldId1, x -> new HashSet<>()).add(mirroredFieldId2);
+				mirroredConnections.computeIfAbsent(mirroredFieldId2, x -> new HashSet<>()).add(mirroredFieldId1);
+			}
+		}
+		connections.putAll(mirroredConnections);
 		
 		// add the mirrored fields to new regions, so the regions are mirrored too
 		List<Region> mirroredRegions = new ArrayList<>();
@@ -283,6 +287,7 @@ public class MapGenerator {
 			
 			mirroredRegions.add(new Region(mirroredRegionFields, region.bonusTroops));
 		}
+		regions.addAll(mirroredRegions);
 	}
 	
 	private void connectSides() {
@@ -348,5 +353,17 @@ public class MapGenerator {
 				.sorted(Comparator.comparing(pair -> positions.get(pair.getKey()).distance(positions.get(pair.getValue())))) //
 				.limit(numConnectionsToAdd) //
 				.forEach(pair -> connectFields(pair.getKey(), pair.getValue()));
+	}
+	
+	private void performDepthFirstSearch(Set<Field> allFields, Set<Field> group, Field field) {
+		allFields.remove(field);
+		group.add(field);
+		
+		Set<Field> connectedFields = connections.computeIfAbsent(field, x -> new HashSet<>());
+		for (Field connected : connectedFields) {
+			if (!group.contains(connected)) {
+				performDepthFirstSearch(allFields, group, connected);
+			}
+		}
 	}
 }
