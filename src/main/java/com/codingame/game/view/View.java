@@ -4,23 +4,33 @@ import java.awt.Font;
 import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import com.codingame.game.Action;
 import com.codingame.game.Player;
+import com.codingame.game.build.RandomUtil;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
+import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
+import com.codingame.game.view.MovementEvents.MovementStep;
 import com.codingame.game.view.map.GraphPlacement;
 import com.codingame.game.view.map.GraphPlacement.Variant;
+import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.codingame.gameengine.module.entities.Polygon;
+import com.codingame.gameengine.module.entities.Sprite;
+import com.codingame.gameengine.module.entities.SpriteAnimation;
 import com.codingame.gameengine.module.entities.Text;
 import com.codingame.gameengine.module.entities.Text.FontWeight;
 
@@ -41,9 +51,15 @@ public class View {
 	
 	private Map<Field, Vector2D> cachedFieldPositions;
 	private Map<Region, Integer> cachedRegionColors;
+	private String[] gunner_left_right_red;
+	private String[] gunner_left_right_blue;
+	private Map<Owner, Sprite> pickGraphics;
 	
 	// fields that has to be kept up to date during the game
 	private Map<Field, Text> fieldText;
+	private Map<Field, Text> deployText;
+	private Map<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>> moveAnimations;
+	private Map<Pair<Field, Field>, Text> moveText;
 	private Text statisticsPlayer1;
 	private Text statisticsPlayer2;
 	
@@ -56,6 +72,13 @@ public class View {
 		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(PositionedField::getField, PositionedField::pos));
 		
 		fieldText = new HashMap<Field, Text>();
+		deployText = new HashMap<Field, Text>();
+		moveAnimations = new HashMap<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>>();
+		moveText = new HashMap<Pair<Field, Field>, Text>();
+		pickGraphics = new HashMap<Owner, Sprite>();
+		
+		gunner_left_right_blue = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Blue").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Blue_Run.png").split();
+		gunner_left_right_red = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Red").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Red_Run.png").split();
 	}
 	
 	private Map<Field, Vector2D> addFieldOffset(Map<Field, Vector2D> initialPositions) {
@@ -206,7 +229,8 @@ public class View {
 	}
 	
 	public void drawConnections(Set<Pair<Field, Field>> connections, Set<Region> regions) {
-		Map<Field, Vector2D> positions = cachedFieldPositions;
+		Set<Field> fields = connections.stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toSet());
+		Map<Field, Vector2D> positions = getPositions(fields);
 		
 		for (Pair<Field, Field> connection : connections) {
 			Vector2D pos1 = positions.get(connection.getKey());
@@ -218,21 +242,34 @@ public class View {
 			Vector2D inter1 = findClosestBorderIntersection(pos1, dir);
 			Vector2D inter2 = findClosestBorderIntersection(pos2, dir);
 			
-			if (inter1 != null && inter2 != null) { // TODO the border intersection vectors are not always found when using the graph placement algorithm
-				double directLength = pos1.distance(pos2);
-				double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
-				boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
-				boolean drawIndirect = directLength > indirectLength && !sameRegion;
-				
-				if (drawIndirect) {
-					drawConnectionLine(pos1, inter1);
-					drawConnectionLine(pos2, inter2);
-				}
-				else {
-					drawConnectionLine(pos1, pos2);
-				}
+			double directLength = pos1.distance(pos2);
+			double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
+			boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
+			boolean drawIndirect = directLength > indirectLength && !sameRegion;
+			
+			if (drawIndirect) {
+				drawConnectionLine(pos1, inter1);
+				drawConnectionLine(pos2, inter2);
 			}
+			else {
+				drawConnectionLine(pos1, pos2);
+			}
+			
+			createMovementAnimationEntity(connection.getKey(), connection.getValue(), pos1, pos2);
+			createMovementAnimationEntity(connection.getValue(), connection.getKey(), pos2, pos1);
 		}
+	}
+	
+	private void createMovementAnimationEntity(Field f1, Field f2, Vector2D pos1, Vector2D pos2) {
+		SpriteAnimation animationP1 = graphicEntityModule.createSpriteAnimation().setImages(gunner_left_right_red).setX((int) pos1.x).setY((int) pos1.y).setLoop(true).setAnchor(0.5);
+		SpriteAnimation animationP2 = graphicEntityModule.createSpriteAnimation().setImages(gunner_left_right_blue).setX((int) pos1.x).setY((int) pos1.y).setLoop(true).setAnchor(0.5);
+		animationP1.setDuration(3000);
+		animationP2.setDuration(3000);
+		moveAnimations.put(Pair.of(f1, f2), Pair.of(animationP1, animationP2));
+		Text text = graphicEntityModule.createText();
+		text.setAnchor(0.5);
+		text.setFontSize(20);
+		moveText.put(Pair.of(f1, f2), text);
 	}
 	
 	private void drawConnectionLine(Vector2D pos1, Vector2D pos2) {
@@ -244,7 +281,7 @@ public class View {
 	}
 	
 	public void drawFields(Set<Field> fields) {
-		Map<Field, Vector2D> positions = cachedFieldPositions;
+		Map<Field, Vector2D> positions = getPositions(fields);
 		int fontSize = 40;
 		int fontSizeId = 20;
 		
@@ -280,8 +317,18 @@ public class View {
 					.setY((int) pos.y) //
 					.setAnchor(0.5);
 			
+			Text deployAt = graphicEntityModule.createText() //
+					.setFontSize(fontSize) //
+					.setFontWeight(FontWeight.BOLD) //
+					.setX((int) pos.x) //
+					.setY((int) pos.y - 60) //
+					.setAnchor(0.5) //
+					.setFillColor(0x32ff4e) //
+					.setAlpha(0);
+			
 			// store fields, so we can update them later
 			fieldText.put(field, cgText);
+			deployText.put(field, deployAt);
 		}
 		
 		// add per frame content
@@ -341,6 +388,14 @@ public class View {
 		return colors;
 	}
 	
+	private Map<Field, Vector2D> getPositions(Set<Field> fields) {
+		if (cachedFieldPositions == null) {
+			cachedFieldPositions = estimateFieldPositions(fields);
+		}
+		
+		return cachedFieldPositions;
+	}
+	
 	private Map<Region, Integer> getRegionColors(Set<Region> regions) {
 		if (cachedRegionColors == null) {
 			cachedRegionColors = new HashMap<Region, Integer>();
@@ -354,7 +409,8 @@ public class View {
 	}
 	
 	private Map<Region, Polygon> getRegionPolynoms(Set<Region> regions) {
-		Map<Field, Vector2D> fieldPositions = cachedFieldPositions;
+		Set<Field> fields = regions.stream().flatMap(r -> r.fields.stream()).collect(Collectors.toSet());
+		Map<Field, Vector2D> fieldPositions = getPositions(fields);
 		
 		RegionGrid grid = new RegionGrid(regions, fieldPositions);
 		grid.setWidth(GAME_FIELD_WIDTH);
@@ -365,6 +421,167 @@ public class View {
 		grid.setDistNorm(1);
 		
 		return grid.createRegionPolygons(graphicEntityModule);
+	}
+	
+	private Map<Field, Vector2D> estimateFieldPositions(Set<Field> fields) {
+		Map<Field, Vector2D> positions = new HashMap<Field, Vector2D>();
+		
+		// right now, we use hard coded values
+		if (fields.size() == 8) { // map_one_region
+			double xDist = 0.25 * GAME_FIELD_WIDTH;
+			double yDist = 0.4 * GAME_FIELD_HEIGHT;
+			
+			for (Field field : fields) {
+				int id = field.id;
+				boolean mirrorX = id >= fields.size() / 2;
+				boolean mirrorY = false;
+				id = id % (fields.size() / 2);
+				
+				double xDiff = xDist / 2;
+				double yDiff = yDist;
+				
+				if (id == 1) {
+					xDiff += xDist;
+				}
+				
+				while (id >= 1) {
+					yDiff -= yDist;
+					id -= 2;
+				}
+				
+				if (mirrorX)
+					xDiff *= -1;
+				
+				if (mirrorY)
+					yDiff *= -1;
+				
+				double x = GAME_FIELD_WIDTH / 2 - xDiff;
+				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
+				
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
+			}
+		}
+		else if (fields.size() == 18) { // map_two_regions
+			double xDist = 0.15 * GAME_FIELD_WIDTH;
+			double yDist = 0.3 * GAME_FIELD_HEIGHT;
+			
+			for (Field field : fields) {
+				int id = field.id;
+				boolean mirrorX = id >= fields.size() / 2;
+				boolean mirrorY = false;
+				id = id % (fields.size() / 2);
+				
+				double xDiff = 0;
+				double yDiff = 0;
+				
+				if (id == 2) {
+					xDiff = 3 * xDist;
+					yDiff = 0;
+				}
+				else if (id < 2 || id > 6) {
+					int idX = id < 2 ? id : id - 7;
+					xDiff = (2 - idX) * xDist;
+					yDiff = 1.5 * yDist;
+					
+					mirrorY = id > 6;
+				}
+				else { // 3, 4, 5 6
+					int idX = id < 5 ? id : id - 2;
+					xDiff = idX == 3 ? 2.25 * xDist : .5 * xDist;
+					yDiff = 0.5 * yDist;
+					
+					mirrorY = id > 4;
+				}
+				
+				if (mirrorX)
+					xDiff *= -1;
+				
+				if (mirrorY)
+					yDiff *= -1;
+				
+				double x = GAME_FIELD_WIDTH / 2 - xDiff;
+				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
+				
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
+			}
+		}
+		else if (fields.size() == 26) { // map_five_regions
+			double xDist = 0.1 * GAME_FIELD_WIDTH;
+			double yDist = 0.2 * GAME_FIELD_HEIGHT;
+			double regionMoveX = 0.85;
+			
+			for (Field field : fields) {
+				int id = field.id;
+				boolean mirrorX = id >= fields.size() / 2;
+				boolean mirrorY = false;
+				id = id % (fields.size() / 2);
+				
+				double xDiff = 0;
+				double yDiff = 0;
+				
+				if (id >= 10 && id <= 12) { // region C
+					xDiff = xDist;
+					yDiff = -(id - 11) * yDist;
+				}
+				else if (id >= 0 && id <= 5) {// region A
+					int row = 0;
+					
+					if (id < 3) {
+						xDiff = regionMoveX * (5 - id) * xDist;
+						row = 0;
+					}
+					else if (id < 5) {
+						xDiff = regionMoveX * (7.5 - id) * xDist;
+						row = 1;
+					}
+					else {
+						xDiff = regionMoveX * (5 - 1) * xDist;
+						row = 2;
+					}
+					
+					yDiff = 0.75 * (3 - row) * yDist;
+				}
+				else { // region B
+					int row = 0;
+					
+					if (id == 6) {
+						xDiff = regionMoveX * (4) * xDist;
+						row = 0;
+					}
+					else if (id == 9) {
+						xDiff = regionMoveX * (4) * xDist;
+						row = 2;
+					}
+					else {
+						xDiff = regionMoveX * (4) * xDist + 1.5 * (7.5 - id) * xDist;
+						row = 1;
+					}
+					
+					yDiff = -0.75 * (row + 1) * yDist;
+				}
+				
+				if (mirrorX)
+					xDiff *= -1;
+				
+				if (mirrorY)
+					yDiff *= -1;
+				
+				double x = GAME_FIELD_WIDTH / 2 - xDiff;
+				double y = GAME_FIELD_HEIGHT / 2 - yDiff;
+				
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
+			}
+		}
+		else {
+			// do random placement if map not found (improvement would be to mirror half...)
+			for (Field field : fields) {
+				double x = RandomUtil.getInstance().nextFloat() * GAME_FIELD_WIDTH;
+				double y = RandomUtil.getInstance().nextFloat() * GAME_FIELD_HEIGHT;
+				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
+			}
+		}
+		
+		return positions;
 	}
 	
 	private Vector2D findClosestBorderIntersection(Vector2D start, Vector2D dir) {
@@ -407,6 +624,176 @@ public class View {
 			double t = (start2.x - start1.x) / dir1.x;
 			
 			return start1.add(dir1.setLength(dir1.length() * t));
+		}
+	}
+	
+	public void animatePicks(Set<Field> fields, Set<PickEvent> picksPerformed) {
+		Map<Field, Vector2D> positions = getPositions(fields);
+		
+		// moved pick to a later point to manipulate image order...
+		if (pickGraphics.size() == 0) {
+			pickGraphics.put(Owner.PLAYER_1, graphicEntityModule.createSprite().setImage("pointing_finger.png").setTint(getColorForOwner().get(Owner.PLAYER_1)).setAlpha(1).setAnchor(0.5).setBaseWidth(100).setBaseHeight(100));
+			pickGraphics.put(Owner.PLAYER_2, graphicEntityModule.createSprite().setImage("pointing_finger.png").setTint(getColorForOwner().get(Owner.PLAYER_2)).setAlpha(1).setAnchor(0.5).setBaseWidth(100).setBaseHeight(100));
+		}
+		
+		for (PickEvent pick : picksPerformed) {
+			Field field = fields.stream().filter(f -> f.id == pick.targetId).findFirst().get();
+			Vector2D position = positions.get(field);
+			Sprite hand = pickGraphics.get(pick.owner);
+			
+			double xOffset = 0;
+			double rotation = 0;
+			double scale = 1;
+			
+			if (pick.denied) {
+				xOffset = 80 * (pick.owner == Owner.PLAYER_1 ? -1 : 1);
+				rotation = Math.PI / 5. * (pick.owner == Owner.PLAYER_1 ? -1 : 1);
+				scale = 0.8;
+			}
+			
+			hand.setX((int) (position.x + xOffset), Curve.NONE).setY((int) position.y - 100, Curve.NONE).setAlpha(1, Curve.NONE) //
+					.setScale(scale, Curve.NONE).setRotation(rotation, Curve.NONE);
+			graphicEntityModule.commitEntityState(0.2, hand);
+		}
+	}
+	
+	public void animateDeployments(List<Action> actions1, List<Action> actions2) {
+		List<Action> actions = new ArrayList<Action>();
+		
+		actions.addAll(actions1);
+		actions.addAll(actions2);
+		
+		for (Field field : deployText.keySet()) {
+			int deployedTroops = actions.stream().filter(a -> a.getTargetId() == field.id && a.getType() == Action.Type.DEPLOY).mapToInt(a -> a.getNumTroops()).sum();
+			Text cgText = fieldText.get(field);
+			Text deployAt = deployText.get(field);
+			
+			if (deployedTroops > 0) {
+				deployAt.setText("+" + deployedTroops);
+				graphicEntityModule.commitEntityState(0, deployAt);
+				deployAt.setAlpha(1, Curve.EASE_OUT);
+				graphicEntityModule.commitEntityState(1, deployAt);
+			}
+			
+			//			deployAt.setText("+"+deployedTroops).setY(cgText.getY()-30, Curve.EASE_IN).setAlpha(0, Curve.EASE_IN);
+			//			graphicEntityModule.commitEntityState(1, deployAt);
+		}
+	}
+	
+	public void animateMovements(MovementEvents events, Set<Field> fields) {
+		Set<Pair<Field, Field>> keys = events.getKeys();
+		Map<Field, Vector2D> positions = getPositions(fields);
+		
+		for (Pair<Field, Field> key : keys) {
+			Field f1 = key.getKey();
+			Field f2 = key.getValue();
+			
+			Vector2D p1 = positions.get(f1);
+			Vector2D p2 = positions.get(f2);
+			
+			boolean leftRight = p1.x <= p2.x + 1e-4;
+			
+			List<MovementStep> steps = events.getSteps(f1, f2);
+			
+			Pair<SpriteAnimation, SpriteAnimation> spriteSelection = moveAnimations.get(key);
+			Text troopText = moveText.get(key);
+			SpriteAnimation troops = steps.get(0).owner == Owner.PLAYER_1 ? spriteSelection.getKey() : spriteSelection.getValue();
+			double stepDuration = 1. / steps.size();
+			double t = 0;
+			
+			troopText.setText(steps.get(0).units + "").setX((int) p1.x).setY((int) p1.y + 30).setAlpha(1);
+			graphicEntityModule.commitEntityState(t, troopText);
+			
+			troops.setAlpha(1, Curve.IMMEDIATE).setX((int) p1.x).setY((int) p1.y).reset().setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+			;
+			graphicEntityModule.commitEntityState(t, troops);
+			
+			for (MovementStep step : steps) {
+				t += stepDuration;
+				boolean lastStep = step == steps.get(steps.size() - 1);
+				
+				//					troops.reset();
+				
+				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+				
+				switch (step.type) {
+					case Die:
+						troops.setAlpha(0);
+						troopText.setAlpha(0);
+						break;
+					case Fight:
+						// do not move and
+						// add shooting animation
+						if (step.fightWithMovement != null) {
+							Vector2D shootAt = estimateFightPosition(positions, step.fightWithMovement.getKey(), step.fightWithMovement.getValue());
+							Circle bullet = graphicEntityModule.createCircle();
+							bullet.setX(troops.getX()).setY(troops.getY()).setRadius(5).setFillColor(0xFFF000);
+							graphicEntityModule.commitEntityState(t - stepDuration, bullet);
+							bullet.setX((int) shootAt.x).setY((int) shootAt.y);
+							graphicEntityModule.commitEntityState(t, bullet);
+							bullet.setAlpha(0, Curve.IMMEDIATE);
+							graphicEntityModule.commitEntityState(1, bullet);
+						}
+						break;
+					case Forward:
+						if (lastStep) {
+							troops.setX((int) p2.x).setY((int) p2.y);
+						}
+						else {
+							Vector2D dest = estimateFightPosition(positions, f1, f2);
+							troops.setX((int) dest.x).setY((int) dest.y);
+						}
+						break;
+					case Retreat:
+						troops.setX((int) p1.x).setY((int) p1.y);
+						
+						// scale animations are troublesome (turning to run back)
+						//					.setScale(-1*troops.getScaleX(), Curve.NONE);
+						break;
+				}
+				
+				troopText.setX(troops.getX()).setY(troops.getY() + 30).setText(step.units + "");
+				
+				graphicEntityModule.commitEntityState(t, troops, troopText);
+			}
+		}
+	}
+	
+	private Vector2D estimateFightPosition(Map<Field, Vector2D> fieldPositions, Field from, Field to) {
+		Vector2D v1 = fieldPositions.get(from);
+		Vector2D v2 = fieldPositions.get(to);
+		
+		return v1.add(v1.vectorTo(v2).mult(0.4));
+	}
+	
+	public void resetAnimations(TurnType turnType) {
+		if (turnType != TurnType.DEPLOY_TROOPS)
+			for (Field field : fieldText.keySet()) {
+				Text deployAt = deployText.get(field);
+				
+				deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
+				graphicEntityModule.commitEntityState(0.35, deployAt);
+			}
+		
+		if (turnType != TurnType.MOVE_TROOPS && cachedFieldPositions != null)
+			for (Pair<Field, Field> key : moveAnimations.keySet()) {
+				Pair<SpriteAnimation, SpriteAnimation> spritesRedBlue = moveAnimations.get(key);
+				Vector2D startPosition = cachedFieldPositions.get(key.getKey());
+				Vector2D endPosition = cachedFieldPositions.get(key.getValue());
+				boolean leftRight = startPosition.x <= endPosition.x + 1e-4;
+				
+				for (SpriteAnimation troop : new SpriteAnimation[] {spritesRedBlue.getKey(), spritesRedBlue.getValue()}) {
+					troop.setAlpha(0, Curve.NONE).setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y, Curve.NONE).setScaleX(leftRight ? 1 : -1);
+				}
+				
+				Text troopText = moveText.get(key);
+				troopText.setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y + 30, Curve.NONE).setAlpha(1, Curve.NONE).setText("");
+				graphicEntityModule.commitEntityState(0.9, troopText);
+			}
+		
+		for (Sprite hand : pickGraphics.values()) {
+			hand.setAlpha(0, Curve.NONE);
+			graphicEntityModule.commitEntityState(0.2, hand);
 		}
 	}
 }

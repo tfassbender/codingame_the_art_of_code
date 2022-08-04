@@ -141,6 +141,9 @@ public class RegionGrid {
 
 		// get only the boundaries of the regions (sorted)
 		Map<Region, List<GridPoint>> polygonPoints = toPolygonPoint(boundaries);
+		
+		// try to keep only the vertices of the polygon
+		simplifyBoundaries(polygonPoints);
 
 		// create graphics (polygons) from boundaries
 		Map<Region, Polygon> regionPolygons = createPolygons(polygonPoints, graphicEntityModule);
@@ -151,6 +154,29 @@ public class RegionGrid {
 	// **********************************************************************
 	// *** private methods
 	// **********************************************************************
+
+	private void simplifyBoundaries(Map<Region, List<GridPoint>> polygonPoints) {
+		// stepsize is 2 because of grid structure
+		//	x 0 0 
+		//  x x 0
+		//  0 x 0
+		int stepSize = 2;
+		
+		for (Region region : regions) {
+			List<GridPoint> points = polygonPoints.get(region);
+			
+			for (int i = points.size()-3*stepSize; i >= 0; i--) {
+				Vector2D p1 = points.get(i).pos;
+				Vector2D p2 = points.get(i+stepSize).pos;
+				Vector2D p3 = points.get(i+2*stepSize).pos;
+				
+				// remove p2 if p2 is on the line p1->p3
+				
+				if (p1.vectorTo(p3).setLength(1).isCloseTo(p2.vectorTo(p3).setLength(1)))
+					points.remove(i+stepSize);
+			}
+		}
+	}
 
 	private Map<Region, Polygon> createPolygons(Map<Region, List<GridPoint>> polygonPoints,
 			GraphicEntityModule graphicEntityModule) {

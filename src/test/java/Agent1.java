@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -141,6 +142,16 @@ public class Agent1 {
     private void thinkChooseStarting() {
     	// just do random (or wait if we can't choose another)
     	actions.add(new Action(Action.Type.RANDOM));
+    	
+    	// test to pick the same fields
+//    	Random random = new Random(42);
+//    	int id;
+//    	
+//    	do {
+//    		id = random.nextInt(fields.size());
+//    	} while(fields.get(id).getOwner() != Owner.NEUTRAL);
+//   
+//    	actions.add(new Action(Action.Type.PICK, id));
     }
     
     private void thinkDeploy() {

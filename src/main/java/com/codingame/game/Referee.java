@@ -28,7 +28,7 @@ import com.google.inject.Inject;
 
 public class Referee extends AbstractReferee {
 	
-	public static final int FRAME_DURATION = 1000;
+	public static final int FRAME_DURATION = 2000;
 	public static final int MAX_TURNS = 200;
 	public static final int NUM_PLAYERS = 2;
 	
@@ -112,6 +112,9 @@ public class Referee extends AbstractReferee {
 	
 	@Override
 	public void gameTurn(int turn) {
+		view.resetAnimations(turnType);
+		map.resetEvents();
+		
 		Player player1 = gameManager.getPlayer(0);
 		Player player2 = gameManager.getPlayer(1);
 		
@@ -157,12 +160,31 @@ public class Referee extends AbstractReferee {
 			return;
 		}
 		
+		// replace WAIT during CHOOSE_STARTING_FIELDS with RANDOM
+		if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
+			actions1.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
+			actions2.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
+		}
+		
 		// add the owner of the action to the action object
 		actions1.forEach(action -> action.setOwner(Owner.PLAYER_1));
 		actions2.forEach(action -> action.setOwner(Owner.PLAYER_2));
 		
-		if (actions1 != null && actions2 != null) {
-			executeActions(actions1, actions2);
+		executeActions(actions1, actions2);
+		
+		// Animate the actions
+		
+		switch (turnType) {
+			case CHOOSE_STARTING_FIELDS:
+				view.animatePicks(map.fields, map.getPicksPerformed());
+				break;
+			case DEPLOY_TROOPS:
+				view.animateDeployments(actions1, actions2);
+				break;
+			case MOVE_TROOPS:
+				//view.animateMovements(map.fields, actions1, actions2);
+				view.animateMovements(map.getEvents(), map.fields);
+				break;
 		}
 		
 		// update the turn type and other turn values
@@ -212,7 +234,7 @@ public class Referee extends AbstractReferee {
 		player2.setScore(fieldsPlayer2);
 		
 		// check whether the game has ended
-		if (fieldsPlayer1 == 0 || fieldsPlayer2 == 0) {
+		if (turnType != TurnType.CHOOSE_STARTING_FIELDS && (fieldsPlayer1 == 0 || fieldsPlayer2 == 0)) {
 			gameManager.endGame();
 		}
 	}
@@ -376,10 +398,7 @@ public class Referee extends AbstractReferee {
 					}
 					break;
 				case WAIT:
-					if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
-						throw new InvalidActionException("The action " + Type.WAIT + " cannot be used in '" + TurnType.CHOOSE_STARTING_FIELDS + //
-								"' turns. Use " + Type.RANDOM + " if you don't want to choose the fields yourself.");
-					}
+					// always valid
 					break;
 				default:
 					throw new IllegalStateException("Unknown action type: " + action.getType());

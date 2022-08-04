@@ -70,6 +70,18 @@ public class RefereeTest {
 		}
 		
 		@Test
+		public void test_pick_starting_fields__wait() throws Throwable {
+			setTurnType(TurnType.CHOOSE_STARTING_FIELDS);
+			mockStartingFieldChoice();
+			setLeague(League.LEAGUE_1);
+			
+			List<Action> actions = Arrays.asList(new Action(Type.WAIT));
+			validateActions(actions, Owner.PLAYER_1);
+			
+			// assert no exceptions are thrown
+		}
+		
+		@Test
 		public void test_pick_starting_fields__invalid_action_types() throws Exception {
 			setTurnType(TurnType.CHOOSE_STARTING_FIELDS);
 			mockStartingFieldChoice();
@@ -77,15 +89,12 @@ public class RefereeTest {
 			
 			List<Action> actions1 = Arrays.asList(new Action(Type.DEPLOY, 0, 1));
 			List<Action> actions2 = Arrays.asList(new Action(Type.MOVE, 0, 1, 1));
-			List<Action> actions3 = Arrays.asList(new Action(Type.WAIT));
 			
 			InvalidActionException invalidAction1 = assertThrows(InvalidActionException.class, () -> validateActions(actions1, Owner.PLAYER_1));
 			InvalidActionException invalidAction2 = assertThrows(InvalidActionException.class, () -> validateActions(actions2, Owner.PLAYER_1));
-			InvalidActionException invalidAction3 = assertThrows(InvalidActionException.class, () -> validateActions(actions3, Owner.PLAYER_1));
 			
 			assertTrue(invalidAction1.getMessage().contains("The action " + Type.DEPLOY + " cannot be used in this turn"));
 			assertTrue(invalidAction2.getMessage().contains("The action " + Type.MOVE + " cannot be used in this turn"));
-			assertTrue(invalidAction3.getMessage().contains("The action " + Type.WAIT + " cannot be used in 'CHOOSE_STARTING_FIELDS' turns."));
 		}
 		
 		@Test

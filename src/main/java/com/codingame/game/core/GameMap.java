@@ -1,5 +1,6 @@
 package com.codingame.game.core;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -8,6 +9,9 @@ import java.util.stream.Collectors;
 import com.codingame.game.Action;
 import com.codingame.game.Action.Type;
 import com.codingame.game.util.Pair;
+import com.codingame.game.view.MovementEvents;
+import com.codingame.game.view.MovementEvents.MovementType;
+import com.codingame.game.view.PickEvent;
 
 /**
  * The game map, that contains all fields and troops.
@@ -24,6 +28,8 @@ public class GameMap {
 	public final Set<Field> fields;
 	public final Set<Pair<Field, Field>> connections;
 	public final Set<Region> regions;
+	private final Set<PickEvent> picksPerformed;
+	private final MovementEvents moveEvents;
 	
 	protected StartingFieldChoice startingFieldChoice;
 	
@@ -47,6 +53,17 @@ public class GameMap {
 		this.regions = regions;
 		
 		startingFieldChoice = new StartingFieldChoice(fields.size());
+		moveEvents = new MovementEvents();
+		picksPerformed = new HashSet<PickEvent>();
+	}
+	
+	public void resetEvents() {
+		moveEvents.reset();
+		picksPerformed.clear();
+	}
+	
+	public MovementEvents getEvents() {
+		return moveEvents;
 	}
 	
 	public void executeSimultaneously(Action action1, Action action2) {
@@ -61,7 +78,6 @@ public class GameMap {
 					action1.getTargetId() == action2.getTargetId() || // OR
 					// ... one player attacks the source field of the other players move
 					action1.getTargetId() == action2.getSourceId() || action2.getTargetId() == action1.getSourceId()) {
-				executedSimultaneously = true;
 				
 				//*****************************************************************************************************
 				//*** execute the fight between the moving units first
@@ -69,66 +85,94 @@ public class GameMap {
 				
 				// we already validated, that these fields exist (in the Referee), so calling get without isPresent won't lead to an NPE
 				Field field1 = getFieldById(action1.getSourceId()).get();
+				Field field12 = getFieldById(action1.getTargetId()).get();
 				Field field2 = getFieldById(action2.getSourceId()).get();
+				Field field22 = getFieldById(action2.getTargetId()).get();
 				
 				// all troops fight, because those that would not attack would defend (all are handled as attackers with 60% kill rate)
-				int attackingTroops1 = action1.getNumTroops();
-				int attackingTroops2 = action2.getNumTroops();
+				int attackingTroops1 = Math.min(field1.getTroops(), action1.getNumTroops());
+				int attackingTroops2 = Math.min(field2.getTroops(), action2.getNumTroops());
 				
-				// execute the attack simultaneously - both attacking armies loose 60% of troops
-				float killedTroopsInArmy1 = Math.min(attackingTroops1, TROOPS_KILLED_BY_ATTACK * attackingTroops2);
-				float killedTroopsInArmy2 = Math.min(attackingTroops2, TROOPS_KILLED_BY_ATTACK * attackingTroops1);
-				
-				int killedTroopsInArmy1RoundedUp = (int) Math.ceil(killedTroopsInArmy1);
-				int killedTroopsInArmy2RoundedUp = (int) Math.ceil(killedTroopsInArmy2);
-				
-				// update the troops on the field
-				field1.setTroops(Math.max(0, field1.getTroops() - killedTroopsInArmy1RoundedUp));
-				field2.setTroops(Math.max(0, field2.getTroops() - killedTroopsInArmy2RoundedUp));
-				
-				float decimalLossArmy1 = killedTroopsInArmy1RoundedUp - killedTroopsInArmy1;
-				float decimalLossArmy2 = killedTroopsInArmy2RoundedUp - killedTroopsInArmy2;
-				
-				// update the decimal losses on both sides
-				if (action1.getOwner() == Owner.PLAYER_1) {
-					roundingLossPlayer1 += decimalLossArmy1;
-					roundingLossPlayer2 += decimalLossArmy2;
-				}
-				else {
-					roundingLossPlayer1 += decimalLossArmy2;
-					roundingLossPlayer2 += decimalLossArmy1;
-				}
-				
-				// calculate the number of attackers that survived the attack
-				int leftAttackingTroops1 = attackingTroops1 - killedTroopsInArmy1RoundedUp;
-				int leftAttackingTroops2 = attackingTroops2 - killedTroopsInArmy2RoundedUp;
-				
-				//*****************************************************************************************************
-				//*** execute the second step if it's not a fight or if only one of the moving armies survived
-				//*****************************************************************************************************
-				
-				// if only one army survived: let the rest of the troops of this army attack the field
-				Action continuedAction = null;
-				if (leftAttackingTroops1 > 0 && leftAttackingTroops2 == 0) {
-					continuedAction = new Action(Type.MOVE, action1.getSourceId(), action1.getTargetId(), leftAttackingTroops1).setOwner(action1.getOwner());
-				}
-				else if (leftAttackingTroops2 > 0 && leftAttackingTroops1 == 0) {
-					continuedAction = new Action(Type.MOVE, action2.getSourceId(), action2.getTargetId(), leftAttackingTroops2).setOwner(action2.getOwner());
-				}
-				// if both armies survive, but one of them just moves to a field they already own, the move is executed (because it's no second attack)
-				else if (leftAttackingTroops1 > 0 && leftAttackingTroops2 > 0) {
-					Action continuedAction1 = new Action(Type.MOVE, action1.getSourceId(), action1.getTargetId(), leftAttackingTroops1).setOwner(action1.getOwner());
-					Action continuedAction2 = new Action(Type.MOVE, action2.getSourceId(), action2.getTargetId(), leftAttackingTroops2).setOwner(action2.getOwner());
-					if (!isAttack(continuedAction1)) {
-						continuedAction = continuedAction1;
+				if (attackingTroops1 > 0 && attackingTroops2 > 0) {
+					executedSimultaneously = true;
+					
+					// execute the attack simultaneously - both attacking armies loose 60% of troops
+					float killedTroopsInArmy1 = Math.min(attackingTroops1, TROOPS_KILLED_BY_ATTACK * attackingTroops2);
+					float killedTroopsInArmy2 = Math.min(attackingTroops2, TROOPS_KILLED_BY_ATTACK * attackingTroops1);
+					
+					int killedTroopsInArmy1RoundedUp = (int) Math.ceil(killedTroopsInArmy1);
+					int killedTroopsInArmy2RoundedUp = (int) Math.ceil(killedTroopsInArmy2);
+					
+					// update the troops on the field
+					field1.setTroops(Math.max(0, field1.getTroops() - killedTroopsInArmy1RoundedUp));
+					field2.setTroops(Math.max(0, field2.getTroops() - killedTroopsInArmy2RoundedUp));
+					
+					float decimalLossArmy1 = killedTroopsInArmy1RoundedUp - killedTroopsInArmy1;
+					float decimalLossArmy2 = killedTroopsInArmy2RoundedUp - killedTroopsInArmy2;
+					
+					// update the decimal losses on both sides
+					if (action1.getOwner() == Owner.PLAYER_1) {
+						roundingLossPlayer1 += decimalLossArmy1;
+						roundingLossPlayer2 += decimalLossArmy2;
 					}
-					else if (!isAttack(continuedAction2)) {
-						continuedAction = continuedAction2;
+					else {
+						roundingLossPlayer1 += decimalLossArmy2;
+						roundingLossPlayer2 += decimalLossArmy1;
 					}
-				}
-				
-				if (continuedAction != null) {
-					executeMovement(continuedAction);
+					
+					// calculate the number of attackers that survived the attack
+					int leftAttackingTroops1 = attackingTroops1 - killedTroopsInArmy1RoundedUp;
+					int leftAttackingTroops2 = attackingTroops2 - killedTroopsInArmy2RoundedUp;
+					
+					moveEvents.addStep(field1, field12, attackingTroops1, MovementType.Forward, action1.getOwner());
+					moveEvents.addStep(field2, field22, attackingTroops2, MovementType.Forward, action2.getOwner());
+	//				moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Fight, action1.getOwner());
+	//				moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Fight, action2.getOwner());
+					moveEvents.addFight(field1, field12, leftAttackingTroops1, action1.getOwner(), //
+							field2, field22, leftAttackingTroops2, action2.getOwner());
+					
+					if (leftAttackingTroops1 == 0) {
+						moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Die, action1.getOwner());
+					}
+					
+					if (leftAttackingTroops2 == 0) {
+						moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Die, action2.getOwner());
+					}
+					
+					//*****************************************************************************************************
+					//*** execute the second step if it's not a fight or if only one of the moving armies survived
+					//*****************************************************************************************************
+					
+					// if only one army survived: let the rest of the troops of this army attack the field
+					Action continuedAction = null;
+					if (leftAttackingTroops1 > 0 && leftAttackingTroops2 == 0) {
+						continuedAction = new Action(Type.MOVE, action1.getSourceId(), action1.getTargetId(), leftAttackingTroops1).setOwner(action1.getOwner());
+					}
+					else if (leftAttackingTroops2 > 0 && leftAttackingTroops1 == 0) {
+						continuedAction = new Action(Type.MOVE, action2.getSourceId(), action2.getTargetId(), leftAttackingTroops2).setOwner(action2.getOwner());
+					}
+					// if both armies survive, but one of them just moves to a field they already own, the move is executed (because it's no second attack)
+					else if (leftAttackingTroops1 > 0 && leftAttackingTroops2 > 0) {
+						Action continuedAction1 = new Action(Type.MOVE, action1.getSourceId(), action1.getTargetId(), leftAttackingTroops1).setOwner(action1.getOwner());
+						Action continuedAction2 = new Action(Type.MOVE, action2.getSourceId(), action2.getTargetId(), leftAttackingTroops2).setOwner(action2.getOwner());
+						if (!isAttack(continuedAction1)) {
+							continuedAction = continuedAction1;
+							
+							moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Retreat, action2.getOwner());
+						}
+						else if (!isAttack(continuedAction2)) {
+							continuedAction = continuedAction2;
+							
+							moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Retreat, action1.getOwner());
+						} else {
+							moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Retreat, action1.getOwner());
+							moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Retreat, action2.getOwner());
+						}
+					}
+					
+					if (continuedAction != null) {
+						executeMovement(continuedAction);
+					}
 				}
 			}
 		}
@@ -140,17 +184,28 @@ public class GameMap {
 				if (action1.getTargetId() <= startingFieldChoice.player1PriorizedMaxFieldId && action1.getOwner() == Owner.PLAYER_1 || //
 						action1.getTargetId() > startingFieldChoice.player1PriorizedMaxFieldId && action1.getOwner() == Owner.PLAYER_2) {
 					executeIndependent(action1);
+					
+					picksPerformed.add(new PickEvent(action2.getTargetId(), action2.getOwner(), true));
 				}
 				else {
 					executeIndependent(action2);
+					
+					picksPerformed.add(new PickEvent(action1.getTargetId(), action1.getOwner(), true));
 				}
 			}
 		}
 		
 		// the actions are not dependent
 		if (!executedSimultaneously) {
-			executeIndependent(action1);
-			executeIndependent(action2);
+			
+			// avoid picking the same field with random x pick
+			if (action1.getType() == Type.RANDOM) {
+				executeIndependent(action2);
+				executeIndependent(action1);
+			} else {
+				executeIndependent(action1);
+				executeIndependent(action2);	
+			}
 		}
 	}
 	
@@ -189,6 +244,8 @@ public class GameMap {
 			
 			// the attacking field could have already lost troops, so the number of attackers might be limited
 			int attackingTroops = Math.min(action.getNumTroops(), attackingField.getTroops());
+			
+			if (attackingTroops <= 0) return;
 			// all troops on the defending field fight
 			
 			// 60% of attackers kill a defender - 70% of defenders kill an attacker
@@ -222,6 +279,8 @@ public class GameMap {
 				defendingField.setTroops(movedTroops);
 				defendingField.setOwner(action.getOwner());
 			}
+			
+			moveEvents.addStep(attackingField, defendingField, attackingTroops, MovementType.Forward, action.getOwner());
 		}
 		else {
 			// no attack - just move the troops
@@ -230,8 +289,12 @@ public class GameMap {
 			
 			int movedTroops = Math.min(sourceField.getTroops(), action.getNumTroops());
 			
+			if (movedTroops <= 0) return;
+			
 			sourceField.setTroops(sourceField.getTroops() - movedTroops);
 			targetField.setTroops(targetField.getTroops() + movedTroops);
+			
+			moveEvents.addStep(sourceField, targetField, movedTroops, MovementType.Forward, action.getOwner());
 		}
 	}
 	
@@ -243,6 +306,8 @@ public class GameMap {
 		Field field = getFieldById(action.getTargetId()).get();
 		field.setOwner(action.getOwner());
 		field.setTroops(1);
+
+		picksPerformed.add(new PickEvent(field.id, action.getOwner(), false));
 		
 		startingFieldChoice.decreaseStartingFieldsLeft(action.getOwner());
 	}
@@ -263,6 +328,8 @@ public class GameMap {
 		// deploy a starting troop on the chosen field
 		field.setOwner(owner);
 		field.setTroops(1);
+		
+		picksPerformed.add(new PickEvent(field.id, action.getOwner(), false));
 		
 		startingFieldChoice.decreaseStartingFieldsLeft(owner);
 	}
@@ -307,6 +374,10 @@ public class GameMap {
 		else {
 			throw new IllegalArgumentException("The parameter 'player' must be PLAYER_1 or PLAYER_2 but was " + player);
 		}
+	}
+	
+	public Set<PickEvent> getPicksPerformed() {
+		return picksPerformed;
 	}
 	
 	public Optional<Field> getFieldById(int id) {

@@ -49,6 +49,6 @@ public class Field {
 	
 	@Override
 	public String toString() {
-		return "Field [id=" + id + ", troops=" + troops + ", owner=" + owner + "]";
+		return String.format("Field[%d]", id);
 	}
 }
