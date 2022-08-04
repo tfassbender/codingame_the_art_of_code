@@ -7,12 +7,9 @@ loop numberOfConnections read fieldAId:int fieldBId:int
 read priority:word(5)
 gameloop
 read turnType:word(22)
-read playersField:int
-read enemyFields:int
-read deployableTroops:int
-read enemyDeployableTroops:int
-read startingFieldsLeft:int
-read enemyStartingFieldsLeft:int
+read playersField:int enemyFields:int
+read deployableTroops:int enemyDeployableTroops:int
+read startingFieldsLeft:int enemyStartingFieldsLeft:int
 loop numberOfFields read id:int troops:int owner:int
 write WAIT
 
