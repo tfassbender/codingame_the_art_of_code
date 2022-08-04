@@ -72,7 +72,7 @@ After all movements are executed the number of deployable troops is calculated a
 - [:heavy_check_mark: Tobias - master] Create the basic class structure
 - [:heavy_check_mark: Dominik - master] Create a hard-coded map (for testing)
 - [:heavy_check_mark: Tobias - referee_send_move, master] Let the referee send the current game state to the players
-  - [:hammer_and_wrench: Tobias - master] Improve the stub, so the code that reads the inputs works for all languages
+  - [:heavy_check_mark: Tobias - master] Improve the stub, so the code that reads the inputs works for all languages
 - [:heavy_check_mark: Dominik - referee_parse_move, master] Let the referee parse the players moves to Actions (that can be executed)
 - [:heavy_check_mark: Tobias - referee_validate_actions, master] Validate, that all actions from the player are valid and can be executed
 - Execute moves (in the map class)
@@ -89,8 +89,8 @@ After all movements are executed the number of deployable troops is calculated a
   - [:heavy_check_mark: Tobias - referee_adjustments, master] Find out who won the game at the end
 - [:heavy_check_mark: Dominik - simple_bot, master] Create a simple bot (for testing)
 - Generate random maps
-  - [:hammer_and_wrench: Tobias - map_generator] Generate a random, symmetric field graph
-  - [:hammer_and_wrench: Tobias - map_generator] Calculate the positions of the random fields on the map
+  - [:heavy_check_mark: Tobias - map_generator] Generate a random, symmetric field graph
+  - [:heavy_check_mark: Tobias - map_generator] Calculate the positions of the random fields on the map
 - Create boss bots (not in this repo, so they remain private)
 - [:heavy_check_mark: Tobias - master] Define the Rules (in this .md file)
 - [:heavy_check_mark: Tobias - master] Add the Rules to `config/statement_en.html`
