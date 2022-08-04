@@ -72,6 +72,7 @@ After all movements are executed the number of deployable troops is calculated a
 - [:heavy_check_mark: Tobias - master] Create the basic class structure
 - [:heavy_check_mark: Dominik - master] Create a hard-coded map (for testing)
 - [:heavy_check_mark: Tobias - referee_send_move, master] Let the referee send the current game state to the players
+  - [:hammer_and_wrench: Tobias - master] Improve the stub, so the code that reads the inputs works for all languages
 - [:heavy_check_mark: Dominik - referee_parse_move, master] Let the referee parse the players moves to Actions (that can be executed)
 - [:heavy_check_mark: Tobias - referee_validate_actions, master] Validate, that all actions from the player are valid and can be executed
 - Execute moves (in the map class)
