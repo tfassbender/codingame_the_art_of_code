@@ -30,11 +30,11 @@ public class MapGenerator {
 	private static final float FIELD_WIDTH = View.GAME_FIELD_WIDTH - 100; // -100 so the fields are not pushed to the edge completely
 	private static final float FIELD_HEIGHT = View.GAME_FIELD_HEIGHT - 100; // -100 so the fields are not pushed to the edge completely
 	
-	private static final int NUM_FIELDS_MIN = 10;
+	private static final int NUM_FIELDS_MIN = 16;
 	private static final int NUM_FIELDS_MAX = 30;
 	
 	private static final int NUM_CONNECTIONS_PER_FIELD_MIN = 2;
-	private static final int NUM_CONNECTIONS_PER_FIELD_MAX = 4; // can be more, if other fields connect to a field after it got processed or if groups need to be connected
+	private static final int NUM_CONNECTIONS_PER_FIELD_MAX = 3; // can be more, if other fields connect to a field after it got processed or if groups need to be connected
 	
 	private static final int NUM_CONNECTIONS_BETWEEN_DIVIDED_GROUPS_MIN = 1;
 	private static final int NUM_CONNECTIONS_BETWEEN_DIVIDED_GROUPS_MAX = 2;
@@ -46,10 +46,10 @@ public class MapGenerator {
 	
 	private static final float MIN_DISTANCE_BETWEEN_REGION_CENTERS = 300;
 	
-	private static final float BONUS_TROOPS_PER_FIELD_IN_REGION = 0.34f; // 1 troop per three fields
+	private static final float BONUS_TROOPS_PER_FIELD_IN_REGION = 0.67f; // 2 troop per three fields
 	private static final int BONUS_TROOPS_RANDOM = 2;
 	private static final int BONUS_TROOPS_MIN = 2;
-	private static final int BONUS_TROOPS_MAX = 10;
+	private static final int BONUS_TROOPS_MAX = 5;
 	
 	public static Pair<GameMap, Map<Field, Vector2D>> generateMap() {
 		return new MapGenerator().generateRandomMap();
@@ -84,6 +84,7 @@ public class MapGenerator {
 	 * 3. Connect the fields randomly:
 	 * - 3.1. For all pairs of fields: Chance to be connected is proportionately to the distance between the fields
 	 * - 3.2. While the field can be divided into groups: Connect a random number of the closest fields of two groups
+	 * - 3.3. For all fields, that have to many connections (more than allowed): Try to cut connections, but keep all fields connected transitively
 	 * 4. Choose regions using an X-Means algorithm
 	 * 5. Mirror the graph (so it's symmetric)
 	 * 6. Create connections between the fields on both sides (where the chance to be connected is proportionately to the distance between the fields)
@@ -92,12 +93,13 @@ public class MapGenerator {
 		chooseNumberOfFields();
 		initializeHalfFields();
 		positionFields();
-		connectFields();
 		
+		connectFields();
 		Optional<Set<Set<Field>>> dividedFieldGroups;
 		while ((dividedFieldGroups = getDividedFieldGroups()).isPresent()) {
 			connectGroups(dividedFieldGroups.get());
 		}
+		removeDispensableConnections();
 		
 		chooseRegions();
 		mirrorGraph();
@@ -214,6 +216,33 @@ public class MapGenerator {
 							.collect(Collectors.toSet());
 					
 					connectNearestFields(numConnectionsToAdd, possibleConnections);
+				}
+			}
+		}
+	}
+	
+	private void removeDispensableConnections() {
+		boolean removedConnection = true;
+		while (removedConnection) {
+			removedConnection = false;
+			
+			// remove one connection from every field that has to much connections
+			for (Field field : fields) {
+				Set<Field> connectionsToCurrentField = new HashSet<>(connections.get(field)); // copy the set to prevent a concurrent modification
+				if (connectionsToCurrentField.size() > NUM_CONNECTIONS_PER_FIELD_MAX) {
+					for (Field other : connectionsToCurrentField) {
+						removeConnection(field, other);
+						if (getDividedFieldGroups().isPresent() || // check whether all fields are still connected transitively 
+								connections.get(other).size() < NUM_CONNECTIONS_PER_FIELD_MIN) { // check whether the other field has not enough connections now
+							// re-connect the fields (backtracking)
+							connectFields(field, other);
+						}
+						else {
+							removedConnection = true;
+							// only remove one connection in every step
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -365,5 +394,10 @@ public class MapGenerator {
 				performDepthFirstSearch(allFields, group, connected);
 			}
 		}
+	}
+	
+	private void removeConnection(Field field, Field other) {
+		connections.get(field).remove(other);
+		connections.get(other).remove(field);
 	}
 }

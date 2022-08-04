@@ -101,9 +101,9 @@ public class View {
 		// configure hyper-parameters of the graph placement algorithm
 		graphPlacement.setVariant(Variant.SPRING_EMBEDDER);
 		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH - 100, GAME_FIELD_HEIGHT - 100);
-		graphPlacement.setIdealSpringLength(250);
-		graphPlacement.setIdealClusterDistance(200);
-		graphPlacement.setIdealNonAdjacentDistance(400);
+		graphPlacement.setIdealSpringLength(350);
+		graphPlacement.setIdealClusterDistance(300);
+		graphPlacement.setIdealNonAdjacentDistance(500);
 		graphPlacement.setDelta(1f);
 		graphPlacement.setDeltaCooldown(0.99f);
 		graphPlacement.setRepulsiveForce(100f);
