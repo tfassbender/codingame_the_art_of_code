@@ -103,10 +103,10 @@ public class View {
 		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH - 100, GAME_FIELD_HEIGHT - 100);
 		graphPlacement.setIdealSpringLength(350);
 		graphPlacement.setIdealClusterDistance(300);
-		graphPlacement.setIdealNonAdjacentDistance(500);
+		graphPlacement.setIdealNonAdjacentDistance(1000);
 		graphPlacement.setDelta(1f);
-		graphPlacement.setDeltaCooldown(0.99f);
-		graphPlacement.setRepulsiveForce(100f);
+		graphPlacement.setDeltaCooldown(0.95f);
+		graphPlacement.setRepulsiveForce(500f);
 		graphPlacement.setSpringForce(50f);
 		graphPlacement.setClusterForce(50f);
 		//graphPlacement.setMaxForceFactor(1000);

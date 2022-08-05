@@ -81,11 +81,11 @@ public class MapGenerator {
 	 * 
 	 * 1. Choose the number of fields (randomly)
 	 * 2. Position half of the fields on one half of the map area (randomly)
-	 * 3. Connect the fields randomly:
-	 * - 3.1. For all pairs of fields: Chance to be connected is proportionately to the distance between the fields
-	 * - 3.2. While the field can be divided into groups: Connect a random number of the closest fields of two groups
-	 * - 3.3. For all fields, that have to many connections (more than allowed): Try to cut connections, but keep all fields connected transitively
-	 * 4. Choose regions using an X-Means algorithm
+	 * 3. Choose regions using an X-Means algorithm
+	 * 4. Connect the fields randomly:
+	 * - 4.1. For all pairs of fields: Chance to be connected higher for near fields and fields of the same region
+	 * - 4.2. While the field can be divided into groups: Connect a random number of the closest fields of two groups
+	 * - 4.3. For all fields, that have to many connections (more than allowed): Try to cut connections, but keep all fields connected transitively
 	 * 5. Mirror the graph (so it's symmetric)
 	 * 6. Create connections between the fields on both sides (where the chance to be connected is proportionately to the distance between the fields)
 	 */
@@ -93,6 +93,7 @@ public class MapGenerator {
 		chooseNumberOfFields();
 		initializeHalfFields();
 		positionFields();
+		chooseRegions();
 		
 		connectFields();
 		Optional<Set<Set<Field>>> dividedFieldGroups;
@@ -101,7 +102,6 @@ public class MapGenerator {
 		}
 		removeDispensableConnections();
 		
-		chooseRegions();
 		mirrorGraph();
 		connectSides();
 		
@@ -131,6 +131,35 @@ public class MapGenerator {
 		}
 	}
 	
+	private void chooseRegions() {
+		List<PositionedField> positionedFields = fields.stream()//
+				.map(field -> new PositionedField(field, positions.get(field))) //
+				.collect(Collectors.toList());
+		
+		// divide the cluster into half the number of regions, because it is mirrored afterwards
+		List<Cluster<PositionedField>> clusters = ClusterAnalyzer.getClusters(positionedFields, NUM_REGIONS_MIN / 2, NUM_REGIONS_MAX / 2, //
+				MIN_DISTANCE_BETWEEN_REGION_CENTERS);
+		
+		for (Cluster<PositionedField> cluster : clusters) {
+			Set<Field> fieldsInCluster = cluster.entries.stream() //
+					.map(PositionedField::getField) //
+					.collect(Collectors.toSet());
+			
+			Region region = new Region(fieldsInCluster, calculateBonusTroopsForRegion(fieldsInCluster));
+			
+			regions.add(region);
+		}
+	}
+	
+	private int calculateBonusTroopsForRegion(Set<Field> fieldsInCluster) {
+		int bonusTroops = (int) (fieldsInCluster.size() * BONUS_TROOPS_PER_FIELD_IN_REGION) //
+				+ random.nextInt(BONUS_TROOPS_RANDOM * 2) - BONUS_TROOPS_RANDOM;
+		
+		bonusTroops = Math.max(BONUS_TROOPS_MIN, Math.min(BONUS_TROOPS_MAX, bonusTroops));
+		
+		return bonusTroops;
+	}
+	
 	private void connectFields() {
 		final double maxDistance = Math.hypot(FIELD_WIDTH / 2, FIELD_HEIGHT);
 		
@@ -142,8 +171,10 @@ public class MapGenerator {
 				if (field != other) {
 					double distanceBetweenFields = positions.get(field).distance(positions.get(other));
 					double relativeDistance = distanceBetweenFields / maxDistance;
+					double regionFactor = (isFieldsInSameRegion(field, other) ? 1 : 0.5f);
+					double connectionProbability = relativeDistance * regionFactor;
 					
-					if (random.nextFloat() > relativeDistance) { // chance to be connected is proportionately to the distance between the fields
+					if (random.nextFloat() > connectionProbability) { // chance to be connected higher for near fields and fields of the same region
 						numConnections++;
 						
 						connectFields(field, other);
@@ -246,35 +277,6 @@ public class MapGenerator {
 				}
 			}
 		}
-	}
-	
-	private void chooseRegions() {
-		List<PositionedField> positionedFields = fields.stream()//
-				.map(field -> new PositionedField(field, positions.get(field))) //
-				.collect(Collectors.toList());
-		
-		// divide the cluster into half the number of regions, because it is mirrored afterwards
-		List<Cluster<PositionedField>> clusters = ClusterAnalyzer.getClusters(positionedFields, NUM_REGIONS_MIN / 2, NUM_REGIONS_MAX / 2, //
-				MIN_DISTANCE_BETWEEN_REGION_CENTERS);
-		
-		for (Cluster<PositionedField> cluster : clusters) {
-			Set<Field> fieldsInCluster = cluster.entries.stream() //
-					.map(PositionedField::getField) //
-					.collect(Collectors.toSet());
-			
-			Region region = new Region(fieldsInCluster, calculateBonusTroopsForRegion(fieldsInCluster));
-			
-			regions.add(region);
-		}
-	}
-	
-	private int calculateBonusTroopsForRegion(Set<Field> fieldsInCluster) {
-		int bonusTroops = (int) (fieldsInCluster.size() * BONUS_TROOPS_PER_FIELD_IN_REGION) //
-				+ random.nextInt(BONUS_TROOPS_RANDOM * 2) - BONUS_TROOPS_RANDOM;
-		
-		bonusTroops = Math.max(BONUS_TROOPS_MIN, Math.min(BONUS_TROOPS_MAX, bonusTroops));
-		
-		return bonusTroops;
 	}
 	
 	private void mirrorGraph() {
@@ -399,5 +401,9 @@ public class MapGenerator {
 	private void removeConnection(Field field, Field other) {
 		connections.get(field).remove(other);
 		connections.get(other).remove(field);
+	}
+	
+	private boolean isFieldsInSameRegion(Field field, Field other) {
+		return regions.stream().anyMatch(region -> region.fields.contains(field) && region.fields.contains(other));
 	}
 }
