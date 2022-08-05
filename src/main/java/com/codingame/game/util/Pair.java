@@ -22,6 +22,10 @@ public class Pair<K, V> {
 		return value;
 	}
 	
+	public Pair<V, K> swap() {
+		return Pair.of(value, key);
+	}
+	
 	@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof Pair)) return false;

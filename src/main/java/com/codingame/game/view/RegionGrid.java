@@ -156,6 +156,27 @@ public class RegionGrid {
 	// **********************************************************************
 
 	private void simplifyBoundaries(Map<Region, List<GridPoint>> polygonPoints) {
+		// another algorithm, effective but less good looking
+//		for (Region region : regions) {
+//			List<GridPoint> points = polygonPoints.get(region);
+//			
+//			for (int i = points.size()-3; i >= 0; i--) {
+//				GridPoint p1 = points.get(i);
+//				GridPoint p2 = points.get(i+1);
+//				GridPoint p3 = points.get(i+2);
+//				
+//				int dx1 = p3.xi - p2.xi;
+//				int dy1 = p3.yi - p2.yi;
+//				int dx2 = p2.xi - p1.xi;
+//				int dy2 = p2.yi - p1.yi;
+//				// remove p2 if p2 is on the line p1->p3
+//				
+//				if (Math.abs(dx1+dy1) == Math.abs(dx2 + dy2)) {
+//					points.remove(i+1);
+//				}
+//			}
+//		}
+		
 		// stepsize is 2 because of grid structure
 		//	x 0 0 
 		//  x x 0

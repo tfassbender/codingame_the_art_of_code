@@ -7,14 +7,46 @@ loop numberOfConnections read fieldAId:int fieldBId:int
 read priority:word(5)
 gameloop
 read turnType:word(22)
-read playersField:int
-read enemyFields:int
-read deployableTroops:int
-read enemyDeployableTroops:int
-read startingFieldsLeft:int
-read enemyStartingFieldsLeft:int
+read playersField:int enemyFields:int
+read deployableTroops:int enemyDeployableTroops:int
+read startingFieldsLeft:int enemyStartingFieldsLeft:int
 loop numberOfFields read id:int troops:int owner:int
 write WAIT
+
+STATEMENT
+Defeat the enemy army.
+
+INPUT
+numberOfRegions: Number of regions (field groups) on the map
+bonusTroops: Number on bonus troops, if one has all fields in the region
+numberOfFields: Number of fields on the map
+numberOfConnections: Number of connections between the fields (bidirectional)
+fieldId: Id of one field, that belongs to the region 
+priority: Either UPPER or LOWER - the part of the field (identified by id) in which you have the higher priority to choose a starting field
+turnType: CHOOSE_STARTING_FIELDS, DEPLOY_TROOPS or MOVE_TROOPS
+playersField: Number of fields, that you control
+enemyFields: Number of fields, that the enemy control
+deployableTroops: Number of troops, that can be deployed
+enemyDeployableTroops: Number of troops, that the enemy can deploy
+startingFieldsLeft: Number of fields you can still choose
+enemyStartingFieldsLeft: Number of fields that the enemy can still choose
+owner: 1 if the field is controlled by you; 2 if it's controlled by the opponent player; 0 if it's neutral
+
+OUTPUT
+PICK id | RANDOM | DEPLOY id troops | MOVE sourceId targetId troops | WAITread numberOfRegions:int
+loop numberOfRegions read regionId:int bonusTroops:int
+read numberOfFields:int
+loop numberOfFields read fieldId:int regionId:int
+read numberOfConnections:int
+loop numberOfConnections read fieldAId:int fieldBId:int
+read priority:word(5)
+gameloop
+read turnType:word(22)
+read playersField:int enemyFields:int
+read deployableTroops:int enemyDeployableTroops:int
+read startingFieldsLeft:int enemyStartingFieldsLeft:int
+loop numberOfFields read id:int troops:int owner:int
+write RANDOM
 
 STATEMENT
 Defeat the enemy army.

@@ -5,10 +5,13 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -22,8 +25,10 @@ import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.MovementEvents.MovementStep;
+import com.codingame.game.view.TroopNavigator.Route;
 import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
+import com.codingame.gameengine.module.entities.Entity;
 import com.codingame.gameengine.module.entities.GraphicEntityModule;
 import com.codingame.gameengine.module.entities.Polygon;
 import com.codingame.gameengine.module.entities.Sprite;
@@ -51,6 +56,8 @@ public class View {
 	private String[] gunner_left_right_red;
 	private String[] gunner_left_right_blue;
 	private Map<Owner, Sprite> pickGraphics;
+	private TroopNavigator troopNavi;
+	private Map<Pair<Field, Field>, ConnectionType> connectionTypes; 
 	
 	// fields that has to be kept up to date during the game
 	private Map<Field, Text> fieldText;
@@ -68,6 +75,8 @@ public class View {
 		moveAnimations = new HashMap<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>>();
 		moveText = new HashMap<Pair<Field, Field>, Text>();
 		pickGraphics = new HashMap<Owner, Sprite>();
+		troopNavi = new TroopNavigator();
+		connectionTypes = new HashMap<Pair<Field, Field>, ConnectionType>();
 		
 		gunner_left_right_blue = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Blue").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Blue_Run.png").split();
 		gunner_left_right_red = graphicEntityModule.createSpriteSheetSplitter().setName("Gunner_Red").setOrigCol(0).setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48).setSourceImage("Gunner_Red_Run.png").split();
@@ -202,10 +211,19 @@ public class View {
 			boolean drawIndirect = directLength > indirectLength && !sameRegion;
 
 			if (drawIndirect) {
+				troopNavi.addTwoPartConnection(connection, pos1, inter1, inter2, pos2);
+				
 				drawConnectionLine(pos1, inter1);
 				drawConnectionLine(pos2, inter2);
+				
+				connectionTypes.put(connection, ConnectionType.WALL_RIGHT);
+				connectionTypes.put(connection.swap(), ConnectionType.WALL_LEFT);
 			}
 			else {
+				troopNavi.addOnePartConnection(connection, pos1, pos2);
+				
+				connectionTypes.put(connection, ConnectionType.DIRECT);
+				connectionTypes.put(connection.swap(), ConnectionType.DIRECT);
 				drawConnectionLine(pos1, pos2);
 			}
 			
@@ -638,6 +656,7 @@ public class View {
 	public void animateMovements(MovementEvents events, Set<Field> fields) {
 		Set<Pair<Field, Field>> keys = events.getKeys();
 		Map<Field, Vector2D> positions = getPositions(fields);
+		double relFightPos = 0.4;
 		
 		for (Pair<Field, Field> key : keys) {
 			Field f1 = key.getKey();
@@ -646,7 +665,17 @@ public class View {
 			Vector2D p1 = positions.get(f1);
 			Vector2D p2 = positions.get(f2);
 
+			Route route = troopNavi.getRoute(key);
+			ConnectionType type = connectionTypes.get(key);
+			
+//			if (route.isTrivialRoute()) continue;
+
 			boolean leftRight = p1.x <= p2.x + 1e-4;
+			
+			if (type == ConnectionType.WALL_LEFT || type == ConnectionType.WALL_RIGHT)
+				leftRight = !leftRight;
+			
+//			boolean leftRight = route.estimatePosition(0).x <= route.estimatePosition(0.01).x;
 			
 			List<MovementStep> steps = events.getSteps(f1, f2);
 			
@@ -657,18 +686,18 @@ public class View {
 			double t = 0;
 			
 			troopText.setText(steps.get(0).units+"").setX((int)p1.x).setY((int)p1.y+30).setAlpha(1);
-			graphicEntityModule.commitEntityState(t, troopText);
-			
-			troops.setAlpha(1, Curve.IMMEDIATE).setX((int)p1.x).setY((int)p1.y).reset().setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);;
-			graphicEntityModule.commitEntityState(t, troops);
+			troops.setAlpha(1).setX((int)p1.x).setY((int)p1.y).reset().setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+			graphicEntityModule.commitEntityState(t, troops, troopText);
 			
 			for (MovementStep step : steps) {
+				double tStart = t;
 				t += stepDuration;
 				boolean lastStep = step == steps.get(steps.size()-1);
+				List<Pair<Double, Vector2D>> timedPositioning = null;
 				
 //					troops.reset();
 				
-				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+//				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
 				
 				switch(step.type) {
 				case Die:
@@ -679,35 +708,58 @@ public class View {
 					// do not move and
 					// add shooting animation
 					if (step.fightWithMovement != null) {
-						Vector2D shootAt = estimateFightPosition(positions, step.fightWithMovement.getKey(), step.fightWithMovement.getValue());
-						Circle bullet = graphicEntityModule.createCircle();
-						bullet.setX(troops.getX()).setY(troops.getY()).setRadius(5).setFillColor(0xFFF000);
-						graphicEntityModule.commitEntityState(t-stepDuration, bullet);
-						bullet.setX((int)shootAt.x).setY((int)shootAt.y);
-						graphicEntityModule.commitEntityState(t, bullet);
-						bullet.setAlpha(0, Curve.IMMEDIATE);
-						graphicEntityModule.commitEntityState(1, bullet);
+//						Vector2D shootAtOrg = estimateFightPosition(positions, step.fightWithMovement.getKey(), step.fightWithMovement.getValue());
+//						Vector2D shootFrom = route.estimatePosition(0.4);
+//						Vector2D shootAt = troopNavi.getRoute(step.fightWithMovement).estimatePosition(0.4);
+//						
+//						if (!shootAt.isCloseTo(shootAtOrg)) {
+//							System.out.println("Special case or just dump!");
+//							shootAt = troopNavi.getRoute(step.fightWithMovement).estimatePosition(0.4);
+//						}
+//						
+//						Circle bullet = graphicEntityModule.createCircle();
+//						bullet.setX((int)shootFrom.x).setY((int) shootFrom.y).setRadius(5).setFillColor(0xFFF000);
+//						graphicEntityModule.commitEntityState(t-stepDuration, bullet);
+//						bullet.setX((int)shootAt.x).setY((int)shootAt.y);
+//						graphicEntityModule.commitEntityState(t, bullet);
+//						bullet.setAlpha(0, Curve.IMMEDIATE);
+//						graphicEntityModule.commitEntityState(1, bullet);
 					}
 					break;
 				case Forward:
 					if (lastStep) {
-						troops.setX((int)p2.x).setY((int)p2.y);
+//						troops.setX((int)p2.x).setY((int)p2.y);
+
+						timedPositioning = route.getTravelWithRelTimestamps(steps.size() <= 1 ? 0 : relFightPos, 1);
 					} else {
-						Vector2D dest = estimateFightPosition(positions, f1, f2);
-						troops.setX((int)dest.x).setY((int)dest.y);
+//						Vector2D dest = estimateFightPosition(positions, f1, f2);
+//						troops.setX((int)dest.x).setY((int)dest.y);
+						
+						timedPositioning = route.getTravelWithRelTimestamps(0, relFightPos);
 					}
 					break;
 				case Retreat:
-					troops.setX((int)p1.x).setY((int)p1.y);
+					timedPositioning = route.getTravelWithRelTimestamps(relFightPos, 0);
+//					troops.setX((int)p1.x).setY((int)p1.y);
 					
 					// scale animations are troublesome (turning to run back)
 //					.setScale(-1*troops.getScaleX(), Curve.NONE);
 					break;
 				}
 				
-				troopText.setX(troops.getX()).setY(troops.getY()+30).setText(step.units+"");
-				
-				graphicEntityModule.commitEntityState(t, troops, troopText);
+				if (timedPositioning == null) { // no movement
+					troopText.setX(troops.getX()).setY(troops.getY()+30).setText(step.units+"");
+					graphicEntityModule.commitEntityState(t, troops, troopText);
+				} else {
+					for (Pair<Double, Vector2D> timePos : timedPositioning) {
+						Vector2D pos = timePos.getValue();
+						double tnow = timePos.getKey() * (t-tStart) + tStart;
+						
+						troops.setX((int) pos.x).setY((int)pos.y);
+						troopText.setX(troops.getX()).setY(troops.getY()+30).setText(step.units+"");
+						graphicEntityModule.commitEntityState(tnow, troops, troopText);
+					}
+				}
 			}
 		}
 	}
@@ -720,28 +772,38 @@ public class View {
 	}
 	
 	public void resetAnimations(TurnType turnType) {
-		if (turnType != TurnType.DEPLOY_TROOPS)
-		for (Field field : fieldText.keySet()) {
-			Text deployAt = deployText.get(field);
-			
-			deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
-			graphicEntityModule.commitEntityState(0.35, deployAt);
+		if (turnType != TurnType.DEPLOY_TROOPS) {
+			for (Field field : fieldText.keySet()) {
+				Text deployAt = deployText.get(field);
+				
+				deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
+//				graphicEntityModule.commitEntityState(0.35, deployAt);
+			}
+			graphicEntityModule.commitEntityState(0.35, fieldText.values().toArray(new Entity[] {}));
 		}
 		
-		if (turnType != TurnType.MOVE_TROOPS && cachedFieldPositions != null)
-		for (Pair<Field, Field> key : moveAnimations.keySet()) {
-			Pair<SpriteAnimation, SpriteAnimation> spritesRedBlue = moveAnimations.get(key);
-			Vector2D startPosition = cachedFieldPositions.get(key.getKey());
-			Vector2D endPosition = cachedFieldPositions.get(key.getValue());
-			boolean leftRight = startPosition.x  <= endPosition.x+1e-4;
-			
-			for (SpriteAnimation troop : new SpriteAnimation[] {spritesRedBlue.getKey(), spritesRedBlue.getValue()}) {
-				troop.setAlpha(0, Curve.NONE).setX((int)startPosition.x, Curve.NONE).setY((int)startPosition.y, Curve.NONE).setScaleX(leftRight ? 1 : -1);
+		if (turnType != TurnType.MOVE_TROOPS && cachedFieldPositions != null) {
+			for (Pair<Field, Field> key : moveAnimations.keySet()) {
+				Pair<SpriteAnimation, SpriteAnimation> spritesRedBlue = moveAnimations.get(key);
+				Vector2D startPosition = cachedFieldPositions.get(key.getKey());
+				Vector2D endPosition = cachedFieldPositions.get(key.getValue());
+				boolean leftRight = startPosition.x  <= endPosition.x+1e-4;
+				ConnectionType type = connectionTypes.get(key);
+				
+				if (type == ConnectionType.WALL_LEFT || type == ConnectionType.WALL_RIGHT)
+					leftRight = !leftRight;
+				
+				for (SpriteAnimation troop : new SpriteAnimation[] {spritesRedBlue.getKey(), spritesRedBlue.getValue()}) {
+					troop.setAlpha(0, Curve.NONE).setX((int)startPosition.x, Curve.NONE).setY((int)startPosition.y, Curve.NONE).setScaleX(leftRight ? 1 : -1);
+				}
+				
+				Text troopText = moveText.get(key);
+				troopText.setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y+30, Curve.NONE).setAlpha(1, Curve.NONE).setText("");
+//				graphicEntityModule.commitEntityState(0.9, troopText);
 			}
 			
-			Text troopText = moveText.get(key);
-			troopText.setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y+30, Curve.NONE).setAlpha(1, Curve.NONE).setText("");
-			graphicEntityModule.commitEntityState(0.9, troopText);
+			graphicEntityModule.commitEntityState(0.9, moveText.values().toArray(new Entity[] {}));
+//			graphicEntityModule.commitEntityState(0.9, moveAnimations.values().stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toList()).toArray(new Entity[] {}));
 		}
 		
 		for (Sprite hand : pickGraphics.values()) {
