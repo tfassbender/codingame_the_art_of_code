@@ -26,7 +26,7 @@ public class RegionGrid {
 	 * Container holding his own index position (xi, yi) in the grid and the draw
 	 * coordinate (pos).
 	 */
-	class GridPoint {
+	class GridPoint implements Comparable<GridPoint> {
 
 		Region nearestRegion;
 		Vector2D pos;
@@ -71,6 +71,15 @@ public class RegionGrid {
 
 		private boolean isOnMapBorder(GridPoint[][] grid) {
 			return xi == 0 || yi == 0 || yi == grid.length - 1 || xi == grid[0].length - 1;
+		}
+
+		@Override
+		public int compareTo(GridPoint o) {
+			if (xi == o.xi) {
+				return Integer.compare(yi, o.yi);
+			} else {
+				return Integer.compare(xi, o.xi);
+			}
 		}
 	}
 
@@ -155,33 +164,21 @@ public class RegionGrid {
 	// *** private methods
 	// **********************************************************************
 
+	/**
+	 *  Sometimes needed to avoid problems with high amount of graphical data.
+	 *  Still some imperfections, because of a lacking end point to start point (circular) check.
+	 */
 	private void simplifyBoundaries(Map<Region, List<GridPoint>> polygonPoints) {
-		// another algorithm, effective but less good looking
-//		for (Region region : regions) {
-//			List<GridPoint> points = polygonPoints.get(region);
-//			
-//			for (int i = points.size()-3; i >= 0; i--) {
-//				GridPoint p1 = points.get(i);
-//				GridPoint p2 = points.get(i+1);
-//				GridPoint p3 = points.get(i+2);
-//				
-//				int dx1 = p3.xi - p2.xi;
-//				int dy1 = p3.yi - p2.yi;
-//				int dx2 = p2.xi - p1.xi;
-//				int dy2 = p2.yi - p1.yi;
-//				// remove p2 if p2 is on the line p1->p3
-//				
-//				if (Math.abs(dx1+dy1) == Math.abs(dx2 + dy2)) {
-//					points.remove(i+1);
-//				}
-//			}
-//		}
-		
-		// stepsize is 2 because of grid structure
+		boolean useAggressiveMethod = true;
+		// step size is 2 because of grid structure (only if we don't use other methods before=
 		//	x 0 0 
 		//  x x 0
 		//  0 x 0
-		int stepSize = 2;
+		int stepSize = useAggressiveMethod ? 1 : 2;
+		
+		if (useAggressiveMethod) {
+			simplifiyBoundsAggressively(polygonPoints);
+		}
 		
 		for (Region region : regions) {
 			List<GridPoint> points = polygonPoints.get(region);
@@ -195,6 +192,29 @@ public class RegionGrid {
 				
 				if (p1.vectorTo(p3).setLength(1).isCloseTo(p2.vectorTo(p3).setLength(1)))
 					points.remove(i+stepSize);
+			}
+		}
+	}
+	
+	private void simplifiyBoundsAggressively(Map<Region, List<GridPoint>> polygonPoints) {
+		// another algorithm, effective but less smooth looking
+		for (Region region : regions) {
+			List<GridPoint> points = polygonPoints.get(region);
+			
+			for (int i = points.size()-3; i >= 0; i--) {
+				GridPoint p1 = points.get(i);
+				GridPoint p2 = points.get(i+1);
+				GridPoint p3 = points.get(i+2);
+				
+				int dx1 = p3.xi - p2.xi;
+				int dy1 = p3.yi - p2.yi;
+				int dx2 = p2.xi - p1.xi;
+				int dy2 = p2.yi - p1.yi;
+				// remove p2 if p2 is on the line p1->p3
+				
+				if (Math.abs(dx1+dy1) == Math.abs(dx2 + dy2)) {
+					points.remove(i+1);
+				}
 			}
 		}
 	}
@@ -225,9 +245,10 @@ public class RegionGrid {
 			List<GridPoint> orderedBoundaries = new ArrayList<GridPoint>();
 			Set<GridPoint> inscope = new HashSet<GridPoint>(boundaries.get(region));
 			
-			// start the boundary sort on any point of the boundary
-			GridPoint currentPoint = inscope.stream().findFirst().get();
+			// start the boundary sort on the upper left point
+			GridPoint currentPoint = inscope.stream().sorted().findFirst().get();
 
+			
 			// update visited + boundaries
 			orderedBoundaries.add(currentPoint);
 			inscope.remove(currentPoint);

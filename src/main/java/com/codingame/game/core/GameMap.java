@@ -124,19 +124,17 @@ public class GameMap {
 					int leftAttackingTroops1 = attackingTroops1 - killedTroopsInArmy1RoundedUp;
 					int leftAttackingTroops2 = attackingTroops2 - killedTroopsInArmy2RoundedUp;
 					
-					moveEvents.addStep(field1, field12, attackingTroops1, MovementType.Forward, action1.getOwner());
-					moveEvents.addStep(field2, field22, attackingTroops2, MovementType.Forward, action2.getOwner());
-	//				moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Fight, action1.getOwner());
-	//				moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Fight, action2.getOwner());
+					moveEvents.addStep(field1, field12, attackingTroops1, MovementType.FORWARD, action1.getOwner());
+					moveEvents.addStep(field2, field22, attackingTroops2, MovementType.FORWARD, action2.getOwner());
 					moveEvents.addFight(field1, field12, leftAttackingTroops1, action1.getOwner(), //
 							field2, field22, leftAttackingTroops2, action2.getOwner());
 					
 					if (leftAttackingTroops1 == 0) {
-						moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Die, action1.getOwner());
+						moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.DIE, action1.getOwner());
 					}
 					
 					if (leftAttackingTroops2 == 0) {
-						moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Die, action2.getOwner());
+						moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.DIE, action2.getOwner());
 					}
 					
 					//*****************************************************************************************************
@@ -158,15 +156,15 @@ public class GameMap {
 						if (!isAttack(continuedAction1)) {
 							continuedAction = continuedAction1;
 							
-							moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Retreat, action2.getOwner());
+							moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.RETREAT, action2.getOwner());
 						}
 						else if (!isAttack(continuedAction2)) {
 							continuedAction = continuedAction2;
 							
-							moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Retreat, action1.getOwner());
+							moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.RETREAT, action1.getOwner());
 						} else {
-							moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.Retreat, action1.getOwner());
-							moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.Retreat, action2.getOwner());
+							moveEvents.addStep(field1, field12, leftAttackingTroops1, MovementType.RETREAT, action1.getOwner());
+							moveEvents.addStep(field2, field22, leftAttackingTroops2, MovementType.RETREAT, action2.getOwner());
 						}
 					}
 					
@@ -280,7 +278,7 @@ public class GameMap {
 				defendingField.setOwner(action.getOwner());
 			}
 			
-			moveEvents.addStep(attackingField, defendingField, attackingTroops, MovementType.Forward, action.getOwner());
+			moveEvents.addStep(attackingField, defendingField, attackingTroops, MovementType.FORWARD, action.getOwner());
 		}
 		else {
 			// no attack - just move the troops
@@ -294,7 +292,7 @@ public class GameMap {
 			sourceField.setTroops(sourceField.getTroops() - movedTroops);
 			targetField.setTroops(targetField.getTroops() + movedTroops);
 			
-			moveEvents.addStep(sourceField, targetField, movedTroops, MovementType.Forward, action.getOwner());
+			moveEvents.addStep(sourceField, targetField, movedTroops, MovementType.FORWARD, action.getOwner());
 		}
 	}
 	

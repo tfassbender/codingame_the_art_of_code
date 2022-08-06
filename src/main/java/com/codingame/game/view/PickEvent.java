@@ -2,6 +2,9 @@ package com.codingame.game.view;
 
 import com.codingame.game.core.Owner;
 
+/**
+ * Container to store the PICK information that is relevant for the view.
+ */
 public class PickEvent {
 
 	public final int targetId;

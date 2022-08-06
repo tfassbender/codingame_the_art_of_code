@@ -1,14 +1,16 @@
 package com.codingame.game.view;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.codingame.game.core.Field;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 
+/**
+ * Collection of routes. Simplified, hidden creation and easy access.
+ *
+ */
 public class TroopNavigator {
 	
 	private Map<Pair<Field, Field>, Route> connectionPositions;
