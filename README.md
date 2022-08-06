@@ -81,7 +81,7 @@ After all movements are executed the number of deployable troops is calculated a
 - Implement a simple view (for testing)
   - [:heavy_check_mark: Tobias - master] Draw background, player icons and some info
   - [:heavy_check_mark: Dominik - simple_view, master] Draw regions and fields
-  - [:hammer_and_wrench: Dominik - simple_view] Animate actions
+  - [:heavy_check_mark: Dominik - simple_view] Animate actions
 - More adjustments for the Referee
   - [:heavy_check_mark: Tobias - referee_adjustments, master] Skip player in initial phase, if no fields can be chosen anymore
   - [:heavy_check_mark: Tobias - referee_adjustments, master] Detect game ending (no fields left)
