@@ -5,13 +5,10 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,7 +22,6 @@ import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.MovementEvents.MovementStep;
-import com.codingame.game.view.TroopNavigator.Route;
 import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.Entity;
@@ -199,17 +195,23 @@ public class View {
 			Vector2D pos1 = positions.get(connection.getKey());
 			Vector2D pos2 = positions.get(connection.getValue());
 			
-			Vector2D dir = pos2.sub(pos1);
+//			Vector2D dir = pos2.sub(pos1);
 			// TODO this border algorithm is not always correct (e.g. going out on the left
 			// border and coming back from the top)
-			Vector2D inter1 = findClosestBorderIntersection(pos1, dir);
-			Vector2D inter2 = findClosestBorderIntersection(pos2, dir);
+//			Vector2D inter1 = findClosestBorderIntersection(pos1, dir);
+//			Vector2D inter2 = findClosestBorderIntersection(pos2, dir);
+			System.out.println(connection.getKey()+"<->"+connection.getValue());
 			
-			double directLength = pos1.distance(pos2);
-			double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
-			boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
-			boolean drawIndirect = directLength > indirectLength && !sameRegion;
-
+			ConnectionFinder confind = new ConnectionFinder(GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT, GAME_FIELD_X, GAME_FIELD_Y, pos1, pos2);
+			Vector2D inter1 = confind.getIntersection1();
+			Vector2D inter2 = confind.getIntersection2();
+			
+//			double directLength = pos1.distance(pos2);
+//			double indirectLength = pos1.distance(inter1) + pos2.distance(inter2);
+//			boolean sameRegion = getRegion(connection.getKey(), regions).equals(getRegion(connection.getValue(), regions));
+//			boolean drawIndirect = directLength > indirectLength && !sameRegion;
+			boolean drawIndirect = !confind.isDirect();
+			
 			if (drawIndirect) {
 				troopNavi.addTwoPartConnection(connection, pos1, inter1, inter2, pos2);
 				
@@ -668,17 +670,7 @@ public class View {
 			Route route = troopNavi.getRoute(key);
 			ConnectionType type = connectionTypes.get(key);
 			
-//			if (route.isTrivialRoute()) continue;
-
-			boolean leftRight = p1.x <= p2.x + 1e-4;
-			
-			if (type == ConnectionType.WALL_LEFT || type == ConnectionType.WALL_RIGHT)
-				leftRight = !leftRight;
-			
-//			boolean leftRight = route.estimatePosition(0).x <= route.estimatePosition(0.01).x;
-			
 			List<MovementStep> steps = events.getSteps(f1, f2);
-			
 			Pair<SpriteAnimation, SpriteAnimation> spriteSelection = moveAnimations.get(key);
 			Text troopText = moveText.get(key);
 			SpriteAnimation troops = steps.get(0).owner == Owner.PLAYER_1 ? spriteSelection.getKey() : spriteSelection.getValue();
@@ -686,7 +678,7 @@ public class View {
 			double t = 0;
 			
 			troopText.setText(steps.get(0).units+"").setX((int)p1.x).setY((int)p1.y+30).setAlpha(1);
-			troops.setAlpha(1).setX((int)p1.x).setY((int)p1.y).reset().setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
+			troops.setAlpha(1).setX((int)p1.x).setY((int)p1.y).reset();
 			graphicEntityModule.commitEntityState(t, troops, troopText);
 			
 			for (MovementStep step : steps) {
@@ -697,8 +689,6 @@ public class View {
 				
 //					troops.reset();
 				
-//				troops.setScaleX(leftRight ? 1 : -1, Curve.IMMEDIATE);
-				
 				switch(step.type) {
 				case Die:
 					troops.setAlpha(0);
@@ -708,47 +698,71 @@ public class View {
 					// do not move and
 					// add shooting animation
 					if (step.fightWithMovement != null) {
-//						Vector2D shootAtOrg = estimateFightPosition(positions, step.fightWithMovement.getKey(), step.fightWithMovement.getValue());
-//						Vector2D shootFrom = route.estimatePosition(0.4);
-//						Vector2D shootAt = troopNavi.getRoute(step.fightWithMovement).estimatePosition(0.4);
-//						
-//						if (!shootAt.isCloseTo(shootAtOrg)) {
-//							System.out.println("Special case or just dump!");
-//							shootAt = troopNavi.getRoute(step.fightWithMovement).estimatePosition(0.4);
-//						}
-//						
-//						Circle bullet = graphicEntityModule.createCircle();
-//						bullet.setX((int)shootFrom.x).setY((int) shootFrom.y).setRadius(5).setFillColor(0xFFF000);
-//						graphicEntityModule.commitEntityState(t-stepDuration, bullet);
-//						bullet.setX((int)shootAt.x).setY((int)shootAt.y);
-//						graphicEntityModule.commitEntityState(t, bullet);
-//						bullet.setAlpha(0, Curve.IMMEDIATE);
-//						graphicEntityModule.commitEntityState(1, bullet);
+						Vector2D shootFrom = route.estimatePosition(0.4);
+						Vector2D shootAt = troopNavi.getRoute(step.fightWithMovement).estimatePosition(0.4);
+						boolean makeDirectBullet = true;
+						
+						if (type != ConnectionType.DIRECT || connectionTypes.get(step.fightWithMovement) != ConnectionType.DIRECT) {
+							ConnectionFinder confind = new ConnectionFinder(GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT, GAME_FIELD_X, GAME_FIELD_Y, shootFrom, shootAt);
+							
+							if (!confind.isDirect()) {
+								makeDirectBullet = false;
+								
+								System.err.println("CURVED BULLET");
+								
+								ConnectionFinder confindDebugView = new ConnectionFinder(GAME_FIELD_WIDTH, GAME_FIELD_HEIGHT, GAME_FIELD_X, GAME_FIELD_Y, shootFrom, shootAt);
+								Route bulletTrajectory = new Route(shootFrom, confind.getIntersection1(), confind.getIntersection2(), shootAt);
+								
+								List<Pair<Double, Vector2D>> bulletEvents = bulletTrajectory.getTravelWithRelTimestamps(0, 1);
+								
+								Circle bullet = graphicEntityModule.createCircle();
+								double bulletStartTime = t-stepDuration;
+								bullet.setX((int)shootFrom.x).setY((int) shootFrom.y).setRadius(5).setFillColor(0xFFF000);
+								graphicEntityModule.commitEntityState(t-stepDuration, bullet);
+								
+								for (Pair<Double, Vector2D> timePos : bulletEvents) {
+									Vector2D pos = timePos.getValue();
+									double tnow = timePos.getKey() * (t-bulletStartTime) + bulletStartTime;
+									
+									bullet.setX((int)pos.x).setY((int)pos.y);
+									graphicEntityModule.commitEntityState(tnow, bullet);
+								}
+								
+								bullet.setAlpha(0, Curve.IMMEDIATE);
+								graphicEntityModule.commitEntityState(1, bullet);
+							}
+						}
+						
+						if (makeDirectBullet) {
+							Circle bullet = graphicEntityModule.createCircle();
+							bullet.setX((int)shootFrom.x).setY((int) shootFrom.y).setRadius(5).setFillColor(0xFFF000);
+							graphicEntityModule.commitEntityState(t-stepDuration, bullet);
+							bullet.setX((int)shootAt.x).setY((int)shootAt.y);
+							graphicEntityModule.commitEntityState(t, bullet);
+							bullet.setAlpha(0, Curve.IMMEDIATE);
+							graphicEntityModule.commitEntityState(1, bullet);
+						}
 					}
 					break;
 				case Forward:
 					if (lastStep) {
-//						troops.setX((int)p2.x).setY((int)p2.y);
-
 						timedPositioning = route.getTravelWithRelTimestamps(steps.size() <= 1 ? 0 : relFightPos, 1);
 					} else {
-//						Vector2D dest = estimateFightPosition(positions, f1, f2);
-//						troops.setX((int)dest.x).setY((int)dest.y);
-						
 						timedPositioning = route.getTravelWithRelTimestamps(0, relFightPos);
 					}
 					break;
 				case Retreat:
 					timedPositioning = route.getTravelWithRelTimestamps(relFightPos, 0);
-//					troops.setX((int)p1.x).setY((int)p1.y);
 					
 					// scale animations are troublesome (turning to run back)
 //					.setScale(-1*troops.getScaleX(), Curve.NONE);
 					break;
 				}
 				
+				troopText.setText(step.units+"");
+				
 				if (timedPositioning == null) { // no movement
-					troopText.setX(troops.getX()).setY(troops.getY()+30).setText(step.units+"");
+					troopText.setX(troops.getX()).setY(troops.getY()+30);
 					graphicEntityModule.commitEntityState(t, troops, troopText);
 				} else {
 					for (Pair<Double, Vector2D> timePos : timedPositioning) {
@@ -756,19 +770,12 @@ public class View {
 						double tnow = timePos.getKey() * (t-tStart) + tStart;
 						
 						troops.setX((int) pos.x).setY((int)pos.y);
-						troopText.setX(troops.getX()).setY(troops.getY()+30).setText(step.units+"");
+						troopText.setX(troops.getX()).setY(troops.getY()+30);
 						graphicEntityModule.commitEntityState(tnow, troops, troopText);
 					}
 				}
 			}
 		}
-	}
-	
-	private Vector2D estimateFightPosition(Map<Field, Vector2D> fieldPositions, Field from, Field to) {
-		Vector2D v1 = fieldPositions.get(from);
-		Vector2D v2 = fieldPositions.get(to);
-		
-		return v1.add(v1.vectorTo(v2).mult(0.4));
 	}
 	
 	public void resetAnimations(TurnType turnType) {
@@ -777,7 +784,6 @@ public class View {
 				Text deployAt = deployText.get(field);
 				
 				deployAt.setText("").setAlpha(0, Curve.EASE_OUT);
-//				graphicEntityModule.commitEntityState(0.35, deployAt);
 			}
 			graphicEntityModule.commitEntityState(0.35, fieldText.values().toArray(new Entity[] {}));
 		}
@@ -795,15 +801,14 @@ public class View {
 				
 				for (SpriteAnimation troop : new SpriteAnimation[] {spritesRedBlue.getKey(), spritesRedBlue.getValue()}) {
 					troop.setAlpha(0, Curve.NONE).setX((int)startPosition.x, Curve.NONE).setY((int)startPosition.y, Curve.NONE).setScaleX(leftRight ? 1 : -1);
+//					graphicEntityModule.commitEntityState(0.9, troop);
 				}
 				
 				Text troopText = moveText.get(key);
 				troopText.setX((int) startPosition.x, Curve.NONE).setY((int) startPosition.y+30, Curve.NONE).setAlpha(1, Curve.NONE).setText("");
-//				graphicEntityModule.commitEntityState(0.9, troopText);
 			}
 			
-			graphicEntityModule.commitEntityState(0.9, moveText.values().toArray(new Entity[] {}));
-//			graphicEntityModule.commitEntityState(0.9, moveAnimations.values().stream().flatMap(pair -> Stream.of(pair.getKey(), pair.getValue())).collect(Collectors.toList()).toArray(new Entity[] {}));
+//			graphicEntityModule.commitEntityState(0.9, moveText.values().toArray(new Entity[] {}));
 		}
 		
 		for (Sprite hand : pickGraphics.values()) {
