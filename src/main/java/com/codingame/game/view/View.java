@@ -16,12 +16,15 @@ import com.codingame.game.Action;
 import com.codingame.game.Player;
 import com.codingame.game.build.RandomUtil;
 import com.codingame.game.core.Field;
+import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
 import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.MovementEvents.MovementStep;
+import com.codingame.game.view.map.GraphPlacement;
+import com.codingame.game.view.map.GraphPlacement.Variant;
 import com.codingame.gameengine.module.entities.Circle;
 import com.codingame.gameengine.module.entities.Curve;
 import com.codingame.gameengine.module.entities.Entity;
@@ -63,10 +66,15 @@ public class View {
 	private Map<Pair<Field, Field>, Text> moveText;
 	private Text statisticsPlayer1;
 	private Text statisticsPlayer2;
-
-	public View(GraphicEntityModule graphicEntityModule) {
+	
+	public View(GraphicEntityModule graphicEntityModule, GameMap map, Map<Field, Vector2D> initialPositions) {
 		this.graphicEntityModule = graphicEntityModule;
-
+		
+		initialPositions = addFieldOffset(initialPositions);
+		cachedFieldPositions = initialPositions;
+		Set<PositionedField> positionedFields = calculateFieldPositions(map, initialPositions);
+		cachedFieldPositions = positionedFields.stream().collect(Collectors.toMap(PositionedField::getField, PositionedField::pos));
+		
 		fieldText = new HashMap<Field, Text>();
 		deployText = new HashMap<Field, Text>();
 		moveAnimations = new HashMap<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>>();
@@ -81,7 +89,45 @@ public class View {
 				.setOrigRow(0).setImageCount(6).setImagesPerRow(6).setHeight(48).setWidth(48)
 				.setSourceImage("Gunner_Red_Run.png").split();
 	}
-
+	
+	private Map<Field, Vector2D> addFieldOffset(Map<Field, Vector2D> initialPositions) {
+		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // +50 so the fields are not pushed to the edge completely
+		return initialPositions.entrySet().stream() //
+				.map(entry -> Pair.of(entry.getKey(), entry.getValue().add(offset))) //
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+	}
+	
+	private Set<PositionedField> calculateFieldPositions(GameMap map, Map<Field, Vector2D> initialPositions) {
+		// normalise the initial positions (remove the offset to the drawing game field)
+		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // +50 so the fields are not pushed to the edge completely
+		initialPositions = initialPositions.entrySet().stream() //
+				.map(entry -> Pair.of(entry.getKey(), entry.getValue().sub(offset))) //
+				.collect(Collectors.toMap(Pair::getKey, Pair::getValue));
+		
+		MapGraph graph = new MapGraph(map, initialPositions);
+		GraphPlacement<PositionedField> graphPlacement = new GraphPlacement<>(graph);
+		
+		// configure hyper-parameters of the graph placement algorithm
+		graphPlacement.setVariant(Variant.SPRING_EMBEDDER);
+		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH - 100, GAME_FIELD_HEIGHT - 100);
+		graphPlacement.setIdealSpringLength(350);
+		graphPlacement.setIdealClusterDistance(300);
+		graphPlacement.setIdealNonAdjacentDistance(1000);
+		graphPlacement.setDelta(1f);
+		graphPlacement.setDeltaCooldown(0.95f);
+		graphPlacement.setRepulsiveForce(500f);
+		graphPlacement.setSpringForce(50f);
+		graphPlacement.setClusterForce(50f);
+		//graphPlacement.setMaxForceFactor(1000);
+		
+		Set<PositionedField> positionedFields = graphPlacement.positionFields();
+		
+		// add the drawing field offset to all fields
+		positionedFields.forEach(field -> field.setPosition(field.pos().add(offset)));
+		
+		return positionedFields;
+	}
+	
 	// **********************************************************************
 	// *** initial textures
 	// **********************************************************************
@@ -227,7 +273,7 @@ public class View {
 			}
 
 			createMovementAnimationEntity(connection, pos1, pos2, connectionFinder.shouldTroopsFaceRight());
-			createMovementAnimationEntity(connection.swap(), pos2, pos1, !connectionFinder.shouldTroopsFaceRight());
+			createMovementAnimationEntity(connection.swapped(), pos2, pos1, !connectionFinder.shouldTroopsFaceRight());
 		}
 	}
 
@@ -763,7 +809,7 @@ public class View {
 				positions.put(field, new Vector2D(GAME_FIELD_X + x, GAME_FIELD_Y + y));
 			}
 		}
-
+		
 		return positions;
 	}
 }

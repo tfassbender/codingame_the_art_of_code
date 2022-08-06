@@ -22,23 +22,25 @@ public class Pair<K, V> {
 		return value;
 	}
 	
-	public Pair<V, K> swap() {
+	public Pair<V, K> swapped() {
 		return Pair.of(value, key);
 	}
 	
 	@Override
 	public boolean equals(Object o) {
-		if (!(o instanceof Pair)) return false;
+		if (!(o instanceof Pair))
+			return false;
 		
-		Pair other = (Pair) o;
+		Pair<?, ?> other = (Pair<?, ?>) o;
 		return key.equals(other.key) && value.equals(other.value);
 	}
 	
 	@Override
 	public int hashCode() {
-		return 13*key.hashCode()+value.hashCode();
+		return 13 * key.hashCode() + value.hashCode();
 	}
 	
+	@Override
 	public String toString() {
 		return String.format("Pair<%s, %s>", key.toString(), value.toString());
 	}

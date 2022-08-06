@@ -10,13 +10,13 @@ import java.util.Optional;
 import com.codingame.game.Action.Type;
 import com.codingame.game.build.MapGenerator;
 import com.codingame.game.build.RandomUtil;
-import com.codingame.game.build.StaticMapGenerator;
 import com.codingame.game.core.Field;
 import com.codingame.game.core.GameMap;
 import com.codingame.game.core.Owner;
 import com.codingame.game.core.Region;
 import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
+import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.View;
 import com.codingame.gameengine.core.AbstractPlayer.TimeoutException;
 import com.codingame.gameengine.core.AbstractReferee;
@@ -58,11 +58,13 @@ public class Referee extends AbstractReferee {
 		gameManager.setFirstTurnMaxTime(1000);
 		gameManager.setTurnMaxTime(50);
 		
-//		map = MapGenerator.generateMap();
-		map = new StaticMapGenerator().createMapFiveRegions();
 		turnType = TurnType.CHOOSE_STARTING_FIELDS;
 		
-		view = new View(graphicEntityModule);
+		Pair<GameMap, Map<Field, Vector2D>> generatedMap = MapGenerator.generateMap();
+		map = generatedMap.getKey();
+		Map<Field, Vector2D> initialPositions = generatedMap.getValue();
+		
+		view = new View(graphicEntityModule, map, initialPositions);
 		view.drawBackground();
 		view.drawPlayerInfos(gameManager.getPlayer(0), gameManager.getPlayer(1));
 		view.drawLegend(map.regions);
@@ -97,7 +99,7 @@ public class Referee extends AbstractReferee {
 				// next NUMBER_OF_CONNECTIONS lines: two integers - the SOURCE_ID and the TARGET_ID of the fields that are connected (bidirectional)
 				player.sendInputLine(connection.getKey().id + " " + connection.getValue().id);
 			}
-						
+			
 			// next line: one string - either UPPER or LOWER - the part of the field (identified by id) in which you have the higher priority to choose a starting field
 			if (gameManager.getPlayers().indexOf(player) == 0) {
 				player.sendInputLine("LOWER");
@@ -159,30 +161,30 @@ public class Referee extends AbstractReferee {
 		}
 		
 		// replace WAIT during CHOOSE_STARTING_FIELDS with RANDOM
-	    if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
-	    	actions1.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
-	    	actions2.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
-	    }
+		if (turnType == TurnType.CHOOSE_STARTING_FIELDS) {
+			actions1.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
+			actions2.replaceAll(action -> action.getType() == Type.WAIT ? new Action(Type.RANDOM) : action);
+		}
 		
 		// add the owner of the action to the action object
 		actions1.forEach(action -> action.setOwner(Owner.PLAYER_1));
 		actions2.forEach(action -> action.setOwner(Owner.PLAYER_2));
 		
 		executeActions(actions1, actions2);
-
+		
 		// Animate the actions
 		
-		switch(turnType) {
-		case CHOOSE_STARTING_FIELDS:
-			view.animatePicks(map.fields, map.getPicksPerformed());
-			break;
-		case DEPLOY_TROOPS:
-			view.animateDeployments(actions1, actions2);
-			break;
-		case MOVE_TROOPS:
-			//view.animateMovements(map.fields, actions1, actions2);
-			view.animateMovements(map.getEvents(), map.fields);
-			break;
+		switch (turnType) {
+			case CHOOSE_STARTING_FIELDS:
+				view.animatePicks(map.fields, map.getPicksPerformed());
+				break;
+			case DEPLOY_TROOPS:
+				view.animateDeployments(actions1, actions2);
+				break;
+			case MOVE_TROOPS:
+				//view.animateMovements(map.fields, actions1, actions2);
+				view.animateMovements(map.getEvents(), map.fields);
+				break;
 		}
 		
 		// update the turn type and other turn values
