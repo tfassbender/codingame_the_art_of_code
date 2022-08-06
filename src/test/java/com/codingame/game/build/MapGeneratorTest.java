@@ -30,7 +30,7 @@ public class MapGeneratorTest {
 	
 	private MapGenerator generator;
 	
-	@BeforeEach
+//	@BeforeEach not supported by codingame build
 	public void setup() {
 		RandomUtil.init(42);
 		generator = new MapGenerator();
@@ -38,6 +38,7 @@ public class MapGeneratorTest {
 	
 	@RepeatedTest(10)
 	public void test_chooseNumberOfFields() throws Throwable {
+		setup();
 		randomizeSeed();
 		
 		TestUtils.invokePrivateMethod(generator, "chooseNumberOfFields");
@@ -56,6 +57,7 @@ public class MapGeneratorTest {
 	
 	@RepeatedTest(10)
 	public void test_connectFields_checkNumberOfConnectionsPerField() throws Throwable {
+		setup();
 		randomizeSeed();
 		
 		TestUtils.invokePrivateMethod(generator, "chooseNumberOfFields");
@@ -76,6 +78,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_getDividedFieldGroups_twoFields() throws Throwable {
+		setup();
 		List<Field> fields = new ArrayList<>();
 		fields.add(new Field(0));
 		fields.add(new Field(1));
@@ -99,6 +102,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_getDividedFieldGroups_threeFieldGroups() throws Throwable {
+		setup();
 		List<Field> fields = IntStream.range(0, 6).mapToObj(Field::new).collect(Collectors.toList());
 		
 		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(1));
@@ -131,6 +135,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_getDividedFieldGroups_notDivided() throws Throwable {
+		setup();
 		List<Field> fields = createFields(5);
 		
 		TestUtils.invokePrivateMethod(generator, "connectFields", fields.get(0), fields.get(1));
@@ -148,6 +153,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_connectGroups_closestFieldsAreConnected() throws Throwable {
+		setup();
 		List<Field> fields = createFields(5);
 		Set<Field> group1 = new HashSet<>(fields.subList(0, 2));
 		Set<Field> group2 = new HashSet<>(fields.subList(2, 5));
@@ -174,6 +180,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_connectGroups_allFieldsConnected() throws Throwable {
+		setup();
 		List<Field> fields = createFields(5);
 		Set<Set<Field>> groups = fields.stream() //
 				.map(field -> {
@@ -196,6 +203,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_chooseRegions() throws Throwable {
+		setup();
 		List<Field> fields = createFields(10);
 		
 		// position fields three groups on the x axis and increasing by their id on y axis
@@ -232,6 +240,7 @@ public class MapGeneratorTest {
 	
 	@RepeatedTest(10)
 	public void test_chooseRegions_randomized() throws Throwable {
+		setup();
 		List<Field> fields = createFields(10);
 		
 		int numRegionsMin = TestUtils.getFieldPerReflection(generator, "NUM_REGIONS_MIN");
@@ -258,6 +267,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_mirrorGraph() throws Throwable {
+		setup();
 		List<Field> fields = createFields(5);
 		Map<Field, Vector2D> positions = fields.stream() //
 				.map(field -> Pair.of(field, new Vector2D(field.id, 0))) // position fields in a line (by increasing id)
@@ -305,6 +315,7 @@ public class MapGeneratorTest {
 	
 	@Test
 	public void test_connectSides() throws Throwable {
+		setup();
 		List<Field> fields = createFields(5);
 		Map<Field, Vector2D> positions = fields.stream() //
 				.map(field -> Pair.of(field, new Vector2D(field.id, 0))) // position fields in a line (by increasing id)

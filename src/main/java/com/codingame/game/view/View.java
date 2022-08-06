@@ -98,7 +98,7 @@ public class View {
 	}
 	
 	private Set<PositionedField> calculateFieldPositions(GameMap map, Map<Field, Vector2D> initialPositions) {
-		// normalise the initial positions (remove the offset to the drawing game field)
+		// normalize the initial positions (remove the offset to the drawing game field)
 		Vector2D offset = new Vector2D(GAME_FIELD_X + 50, GAME_FIELD_Y + 50); // +50 so the fields are not pushed to the edge completely
 		initialPositions = initialPositions.entrySet().stream() //
 				.map(entry -> Pair.of(entry.getKey(), entry.getValue().sub(offset))) //
