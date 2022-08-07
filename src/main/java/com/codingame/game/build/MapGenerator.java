@@ -185,7 +185,6 @@ public class MapGenerator {
 					}
 				}
 			}
-			
 		}
 		
 		// add connections to all fields that have not reached the minimum number of connections yet
