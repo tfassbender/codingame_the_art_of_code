@@ -165,10 +165,10 @@ public class MapGenerator {
 		
 		for (Field field : fields) {
 			int numTargetConnections = random.nextInt(NUM_CONNECTIONS_PER_FIELD_MAX - NUM_CONNECTIONS_PER_FIELD_MIN) + NUM_CONNECTIONS_PER_FIELD_MIN;
-			int numConnections = connections.computeIfAbsent(field, x -> new HashSet<>()).size();
+			int numConnections = getConnections(field).size();
 			
 			for (Field other : fields) {
-				if (field != other) {
+				if (field != other && getConnections(other).size() <= NUM_CONNECTIONS_PER_FIELD_MAX) {
 					double distanceBetweenFields = positions.get(field).distance(positions.get(other));
 					double relativeDistance = distanceBetweenFields / maxDistance;
 					double regionFactor = (isFieldsInSameRegion(field, other) ? 1 : 0.5f);
@@ -189,14 +189,14 @@ public class MapGenerator {
 		
 		// add connections to all fields that have not reached the minimum number of connections yet
 		for (Field field : fields) {
-			int numConnections = connections.computeIfAbsent(field, x -> new HashSet<>()).size();
+			int numConnections = getConnections(field).size();
 			
 			if (numConnections < NUM_CONNECTIONS_PER_FIELD_MIN) {
 				// not enough connections were chosen for this field -> connect to the nearest fields till the minimum is reached
 				fields.stream() //
 						.filter(other -> other != field) //
 						.filter(other -> !isFieldsConnected(field, other)) //
-						.sorted(Comparator.comparing(other -> positions.get(field).distance(positions.get(other)))) //
+						.sorted(Comparator.comparing(other -> getConnections(other).size())) //
 						.limit(NUM_CONNECTIONS_PER_FIELD_MIN - numConnections) //
 						.forEach(other -> connectFields(field, other));
 			}
@@ -245,7 +245,7 @@ public class MapGenerator {
 							.flatMap(field1 -> group2.stream().map(field2 -> Pair.of(field1, field2))) //
 							.collect(Collectors.toSet());
 					
-					connectNearestFields(numConnectionsToAdd, possibleConnections);
+					connectFieldsWithFewConnections(numConnectionsToAdd, possibleConnections);
 				}
 			}
 		}
@@ -256,11 +256,22 @@ public class MapGenerator {
 		while (removedConnection) {
 			removedConnection = false;
 			
+			// sort the fields by number of connections to remove connections from the ones with many connections first
+			List<Field> sortedFields = fields.stream() //
+					.sorted(Comparator.comparing((Field field) -> getConnections(field).size()).reversed()) //
+					.collect(Collectors.toList());
+			
 			// remove one connection from every field that has to much connections
-			for (Field field : fields) {
+			for (Field field : sortedFields) {
 				Set<Field> connectionsToCurrentField = new HashSet<>(connections.get(field)); // copy the set to prevent a concurrent modification
+				
 				if (connectionsToCurrentField.size() > NUM_CONNECTIONS_PER_FIELD_MAX) {
-					for (Field other : connectionsToCurrentField) {
+					// sort the connected fields by number of connections to remove connections from the ones with many connections first
+					List<Field> sortedConnectedFields = connectionsToCurrentField.stream() //
+							.sorted(Comparator.comparing((Field other) -> getConnections(other).size()).reversed()) //
+							.collect(Collectors.toList());
+					
+					for (Field other : sortedConnectedFields) {
 						removeConnection(field, other);
 						if (getDividedFieldGroups().isPresent() || // check whether all fields are still connected transitively 
 								connections.get(other).size() < NUM_CONNECTIONS_PER_FIELD_MIN) { // check whether the other field has not enough connections now
@@ -366,12 +377,16 @@ public class MapGenerator {
 	//*** helper methods
 	//*************************************************************************
 	
+	private Set<Field> getConnections(Field field) {
+		return connections.computeIfAbsent(field, x -> new HashSet<>());
+	}
+	
 	/**
 	 * Add the connections bidirectional 
 	 */
 	private void connectFields(Field field1, Field field2) {
-		connections.computeIfAbsent(field1, x -> new HashSet<>()).add(field2);
-		connections.computeIfAbsent(field2, x -> new HashSet<>()).add(field1);
+		getConnections(field1).add(field2);
+		getConnections(field2).add(field1);
 	}
 	
 	private boolean isFieldsConnected(Field field1, Field field2) {
@@ -385,11 +400,19 @@ public class MapGenerator {
 				.forEach(pair -> connectFields(pair.getKey(), pair.getValue()));
 	}
 	
+	private void connectFieldsWithFewConnections(int numConnectionsToAdd, Set<Pair<Field, Field>> possibleConnections) {
+		possibleConnections.stream() //
+				.sorted(Comparator.comparing((Pair<Field, Field> pair) -> getConnections(pair.getKey()).size() + getConnections(pair.getValue()).size()) // few connections
+						.thenComparing(pair -> positions.get(pair.getKey()).distance(positions.get(pair.getValue())))) // nearest
+				.limit(numConnectionsToAdd) //
+				.forEach(pair -> connectFields(pair.getKey(), pair.getValue()));
+	}
+	
 	private void performDepthFirstSearch(Set<Field> allFields, Set<Field> group, Field field) {
 		allFields.remove(field);
 		group.add(field);
 		
-		Set<Field> connectedFields = connections.computeIfAbsent(field, x -> new HashSet<>());
+		Set<Field> connectedFields = getConnections(field);
 		for (Field connected : connectedFields) {
 			if (!group.contains(connected)) {
 				performDepthFirstSearch(allFields, group, connected);
