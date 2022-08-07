@@ -24,6 +24,7 @@ import com.codingame.game.core.TurnType;
 import com.codingame.game.util.Pair;
 import com.codingame.game.util.Vector2D;
 import com.codingame.game.view.MovementEvents.MovementStep;
+import com.codingame.game.view.map.FieldMinDistancePlacement;
 import com.codingame.game.view.map.GraphPlacement;
 import com.codingame.game.view.map.GraphPlacement.Variant;
 import com.codingame.gameengine.module.entities.Circle;
@@ -107,7 +108,7 @@ public class View {
 		// configure hyper-parameters of the graph placement algorithm
 		graphPlacement.setVariant(Variant.SPRING_EMBEDDER);
 		graphPlacement.setBounds(0, 0, GAME_FIELD_WIDTH - 100, GAME_FIELD_HEIGHT - 100);
-		graphPlacement.setIterations(1000);
+		graphPlacement.setIterations(100);
 		graphPlacement.setIdealSpringLength(350);
 		graphPlacement.setIdealClusterDistance(300);
 		graphPlacement.setIdealNonAdjacentDistance(1000);
@@ -119,6 +120,7 @@ public class View {
 		//graphPlacement.setMaxForceFactor(1000);
 		
 		Set<PositionedField> positionedFields = graphPlacement.positionFields();
+		positionedFields = FieldMinDistancePlacement.positionFields(positionedFields);
 		
 		// add the drawing field offset to all fields
 		positionedFields.forEach(field -> field.setPosition(field.pos().add(offset)));
