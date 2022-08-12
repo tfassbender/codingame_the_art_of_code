@@ -60,12 +60,15 @@ public class View {
 	private String[] gunner_left_right_blue;
 	private Map<Owner, Sprite> pickGraphics;
 	private TroopNavigator troopNavi;
+	private int colorPlayer1;
+	private int colorPlayer2;
 	
 	// fields that has to be kept up to date during the game
 	private Map<Field, Text> fieldText;
 	private Map<Field, Text> deployText;
 	private Map<Pair<Field, Field>, Pair<SpriteAnimation, SpriteAnimation>> moveAnimations;
 	private Map<Pair<Field, Field>, Text> moveText;
+	private Map<Region, Pair<Text, Text>> regionLegendTexts;
 	private Text statisticsPlayer1;
 	private Text statisticsPlayer2;
 	
@@ -206,9 +209,13 @@ public class View {
 		
 		statisticsPlayer2 = graphicEntityModule.createText("0\n0\n0").setFontFamily("courier").setFontWeight(FontWeight.BOLD).setFontSize(30) //
 				.setX(360).setY(425);
+		
+		colorPlayer1 = player1.getColorToken();
+		colorPlayer2 = player2.getColorToken();
 	}
 	
 	public void drawLegend(Set<Region> regions) {
+		regionLegendTexts = new HashMap<>();
 		Map<Region, Integer> regionColors = getRegionColors(regions);
 		// sort regions with more bonus troops to the top of the list
 		List<Region> sortedRegions = regions.stream().sorted(Comparator.comparing(Region::getBonusTroops).reversed()).collect(Collectors.toList());
@@ -216,18 +223,20 @@ public class View {
 		graphicEntityModule.createText("Regions").setFontFamily("courier").setFontWeight(FontWeight.BOLD).setFontSize(40) //
 				.setX(240).setY(620).setZIndex(20).setAnchor(0.5);
 		
-		String regionNumFields = sortedRegions.stream().map(region -> Integer.toString(region.fields.size()) + "F -> ").collect(Collectors.joining("\n"));
-		String regionBonuses = sortedRegions.stream().map(region -> Integer.toString(region.getBonusTroops()) + "T").collect(Collectors.joining("\n"));
-		
 		for (int i = 0; i < sortedRegions.size(); i++) {
-			Integer color = regionColors.get(sortedRegions.get(i));
+			Region region = sortedRegions.get(i);
+			Integer color = regionColors.get(region);
 			graphicEntityModule.createCircle().setFillColor(color).setRadius(13).setX(130).setY(700 + i * 39);
+			Text numFields = graphicEntityModule.createText(Integer.toString(region.fields.size()) + "F -> ").setFontFamily("courier") //
+					.setFontSize(40) //
+					.setX(170).setY(680 + i * 39);
+			Text bonus = graphicEntityModule.createText(Integer.toString(region.getBonusTroops()) + "T").setFontFamily("courier") //
+					.setFontSize(40) //
+					.setX(310).setY(680 + i * 39);
+			
+			regionLegendTexts.put(region, Pair.of(numFields, bonus));
 		}
 		
-		graphicEntityModule.createText(regionNumFields).setFontFamily("courier").setFontSize(40) //
-				.setX(170).setY(680);
-		graphicEntityModule.createText(regionBonuses).setFontFamily("courier").setFontSize(40) //
-				.setX(310).setY(680);
 	}
 	
 	public void drawRegions(Set<Region> regions) {
@@ -377,6 +386,21 @@ public class View {
 			
 			Text cgText = fieldText.get(field);
 			cgText.setText(txt).setFillColor(ownerColors.get(field.getOwner()), Curve.NONE);
+		}
+	}
+	
+	public void updateRegionLegend(Set<Region> regions) {
+		for (Region region : regions) {
+			int color = 0;//black
+			if (region.isConqueredBy(Owner.PLAYER_1)) {
+				color = colorPlayer1;
+			}
+			else if (region.isConqueredBy(Owner.PLAYER_2)) {
+				color = colorPlayer2;
+			}
+			Pair<Text, Text> texts = regionLegendTexts.get(region);
+			texts.getKey().setFillColor(color, Curve.NONE);
+			texts.getValue().setFillColor(color, Curve.NONE);
 		}
 	}
 	

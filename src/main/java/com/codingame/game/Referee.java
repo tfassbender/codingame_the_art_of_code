@@ -229,6 +229,7 @@ public class Referee extends AbstractReferee {
 		view.updatePlayerStats(Owner.PLAYER_1, fieldsPlayer1, troopsPlayer1, deployableTroopsPlayer1);
 		view.updatePlayerStats(Owner.PLAYER_2, fieldsPlayer2, troopsPlayer2, deployableTroopsPlayer2);
 		view.updateFields(map.fields);
+		view.updateRegionLegend(map.regions);
 		
 		player1.setScore(fieldsPlayer1);
 		player2.setScore(fieldsPlayer2);
